@@ -1,0 +1,14 @@
+{
+  "name": "outside",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Your kind of places, events and people, wherever you land. Built on Qloo's taste graph.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node bin/serve.mjs",
+    "test": "node --test test/*.test.js",
+    "test:live": "LIVE=1 node --test test/*.test.js"
+  }
+}

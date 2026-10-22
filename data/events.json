@@ -1,0 +1,107 @@
+[
+  {
+    "id": "ddf-2026-opening",
+    "title": "Detty December Fest 2026: Grand Opening Concert",
+    "kind": "concert",
+    "status": "announced",
+    "starts": "2026-12-18T18:00:00+01:00",
+    "ends": "2026-12-18T23:59:00+01:00",
+    "venue": {
+      "name": "Detty December Village",
+      "area": "Lagos",
+      "lat": 6.4281,
+      "lon": 3.4219,
+      "approximate": true
+    },
+    "lineup": [
+      "Wizkid"
+    ],
+    "note": "Wizkid headlines the opening night. More artists to be announced.",
+    "source": "https://www.bellanaija.com/2026/08/wizkid-detty-december-fest-2026/"
+  },
+  {
+    "id": "example-amapiano-beach",
+    "title": "Amapiano beach day",
+    "kind": "party",
+    "status": "example",
+    "starts": "2026-12-20T14:00:00+01:00",
+    "ends": "2026-12-20T23:00:00+01:00",
+    "venue": {
+      "name": "Lekki beachfront",
+      "area": "Lekki",
+      "lat": 6.4318,
+      "lon": 3.5024,
+      "approximate": true
+    },
+    "sound": [
+      "Uncle Waffles",
+      "Kabza De Small",
+      "Tyla"
+    ],
+    "note": "Example event to show how matching works. The names describe the sound, not a lineup."
+  },
+  {
+    "id": "example-rnb-rooftop",
+    "title": "Alté and R&B rooftop night",
+    "kind": "party",
+    "status": "example",
+    "starts": "2026-12-22T20:00:00+01:00",
+    "ends": "2026-12-23T02:00:00+01:00",
+    "venue": {
+      "name": "Victoria Island rooftop",
+      "area": "Victoria Island",
+      "lat": 6.4295,
+      "lon": 3.4246,
+      "approximate": true
+    },
+    "sound": [
+      "Tems",
+      "Odunsi (The Engine)",
+      "SZA",
+      "Cruel Santino"
+    ],
+    "note": "Example event to show how matching works. The names describe the sound, not a lineup."
+  },
+  {
+    "id": "example-street-pop",
+    "title": "Street-pop block party",
+    "kind": "party",
+    "status": "example",
+    "starts": "2026-12-26T19:00:00+01:00",
+    "ends": "2026-12-27T03:00:00+01:00",
+    "venue": {
+      "name": "Lagos Mainland venue",
+      "area": "Surulere",
+      "lat": 6.5003,
+      "lon": 3.3539,
+      "approximate": true
+    },
+    "sound": [
+      "Asake",
+      "Seyi Vibez",
+      "Olamide"
+    ],
+    "note": "Example event to show how matching works. The names describe the sound, not a lineup."
+  },
+  {
+    "id": "example-jazz-dinner",
+    "title": "Highlife and jazz dinner",
+    "kind": "dinner",
+    "status": "example",
+    "starts": "2026-12-28T19:30:00+01:00",
+    "ends": "2026-12-28T23:00:00+01:00",
+    "venue": {
+      "name": "Ikoyi supper club",
+      "area": "Ikoyi",
+      "lat": 6.4474,
+      "lon": 3.4346,
+      "approximate": true
+    },
+    "sound": [
+      "Fela Kuti",
+      "Kokoroko",
+      "Sade"
+    ],
+    "note": "Example event to show how matching works. The names describe the sound, not a lineup."
+  }
+]
