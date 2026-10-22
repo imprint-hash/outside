@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cut">
+<meta name="theme-color" content="#0a0c10">
+<title>Outside</title>
+<meta name="description" content="Your kind of places, events and people, wherever you land. Built on Qloo's taste graph.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<main class="signup">
+  <header class="brand">
+    <span class="brand-dot" aria-hidden="true"></span>
+    <span class="brand-name">Outside</span>
+  </header>
+
+  <section class="stage" aria-hidden="true">
+    <svg id="scene" class="scene" viewBox="0 0 400 220" data-level="0">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1220"/><stop offset="1" stop-color="#1a1424"/></linearGradient>
+        <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#11192a"/><stop offset="1" stop-color="#0a0c10"/></linearGradient>
+      </defs>
+      <rect width="400" height="220" rx="22" fill="url(#sky)"/>
+      <g class="stars"><circle cx="40" cy="26" r="1.2"/><circle cx="96" cy="44" r="1"/><circle cx="168" cy="20" r="1.3"/><circle cx="236" cy="38" r="1"/><circle cx="352" cy="22" r="1.2"/><circle cx="300" cy="56" r="0.9"/></g>
+      <!-- Lekki–Ikoyi Link Bridge: one tower, fanned cables -->
+      <g class="bridge">
+        <path class="deck" d="M150 132 L400 120"/>
+        <path class="tower" d="M300 124 L306 44 L312 124"/>
+        <g class="cables">
+          <path d="M306 52 L196 129"/><path d="M306 60 L226 127"/><path d="M306 68 L256 126"/><path d="M306 76 L282 125"/>
+          <path d="M306 52 L398 121"/><path d="M306 60 L376 122"/><path d="M306 68 L354 123"/><path d="M306 76 L332 124"/>
+        </g>
+        <g class="bridge-lights"><circle cx="196" cy="129" r="1.6"/><circle cx="256" cy="126" r="1.6"/><circle cx="354" cy="123" r="1.6"/><circle cx="306" cy="44" r="2.2"/></g>
+        <text class="sign" x="332" y="110">IKOYI LINK</text>
+      </g>
+      <rect y="150" width="400" height="70" fill="url(#water)"/>
+      <path class="road" d="M0 170 L160 170 L210 134 L400 122" />
+      <g class="glints"><path d="M40 196h26M120 206h18M250 188h30M330 202h22"/></g>
+
+      <!-- The danfo -->
+      <g id="danfo" class="danfo">
+        <g class="body-bob">
+          <path class="bus" d="M22 128 h104 a8 8 0 0 1 8 8 v22 a4 4 0 0 1 -4 4 h-112 a4 4 0 0 1 -4 -4 v-24 l6 -6 z"/>
+          <path class="stripe" d="M14 146 h120 v5 h-120 z"/>
+          <path class="stripe" d="M14 154 h120 v3 h-120 z"/>
+          <rect class="win" x="24" y="132" width="18" height="11" rx="2"/>
+          <rect class="win" x="46" y="132" width="18" height="11" rx="2"/>
+          <rect class="win" x="68" y="132" width="18" height="11" rx="2"/>
+          <rect class="win" x="90" y="132" width="18" height="11" rx="2"/>
+          <path class="win front" d="M112 132 h12 a4 4 0 0 1 4 4 v7 h-16 z"/>
+          <g class="pax p1"><circle cx="33" cy="137" r="3"/><path d="M28 143 a5 4 0 0 1 10 0z"/></g>
+          <g class="pax p2"><circle cx="55" cy="137" r="3"/><path d="M50 143 a5 4 0 0 1 10 0z"/></g>
+          <g class="pax p3"><circle cx="77" cy="137" r="3"/><path d="M72 143 a5 4 0 0 1 10 0z"/></g>
+          <g class="pax p4"><circle cx="99" cy="137" r="3"/><path d="M94 143 a5 4 0 0 1 10 0z"/></g>
+          <g class="pax driver"><circle cx="119" cy="137" r="3"/><path d="M114 143 a5 4 0 0 1 10 0z"/></g>
+          <!-- the conductor hanging off the side door -->
+          <g class="conductor"><circle cx="10" cy="132" r="3.4"/><path d="M10 136 v12 M10 140 l6 -4 M10 148 l-4 8 M10 148 l4 8"/></g>
+          <circle class="headlight" cx="131" cy="152" r="2.6"/>
+          <text class="plate" x="58" y="153.6">OUTSIDE</text>
+        </g>
+        <g class="wheel w1"><circle cx="38" cy="163" r="8"/><circle class="hub" cx="38" cy="163" r="3"/></g>
+        <g class="wheel w2"><circle cx="110" cy="163" r="8"/><circle class="hub" cx="110" cy="163" r="3"/></g>
+        <g class="smoke"><circle cx="4" cy="158" r="3"/><circle cx="-4" cy="154" r="4"/><circle cx="-13" cy="150" r="5"/></g>
+      </g>
+    </svg>
+  </section>
+
+  <form id="form" class="card" novalidate>
+    <h1>Oya, enter!</h1>
+    <p class="sub">Three things and the danfo is moving. Next stop: <em>outside</em>.</p>
+
+    <label class="field">
+      <span>First name</span>
+      <input id="firstName" name="firstName" autocomplete="given-name" maxlength="30" placeholder="Tolu" required>
+    </label>
+    <label class="field">
+      <span>Email</span>
+      <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@email.com" required>
+    </label>
+    <label class="field">
+      <span>Where's home?</span>
+      <input id="homeCity" name="homeCity" autocomplete="address-level2" maxlength="40" placeholder="Houston, London, Atlanta…" list="cities" required>
+      <datalist id="cities">
+        <option value="Houston"><option value="Atlanta"><option value="New York"><option value="London"><option value="Toronto"><option value="Dallas"><option value="Washington DC"><option value="Manchester"><option value="Lagos">
+      </datalist>
+    </label>
+
+    <p id="caption" class="caption" aria-live="polite">The danfo is waiting for passengers…</p>
+
+    <button id="go" class="btn-primary" type="submit" disabled>Outside</button>
+    <p id="error" class="error" role="alert" hidden></p>
+    <p class="fine">We only show your first name to people you choose. Never your email.</p>
+  </form>
+</main>
+<script type="module" src="/signup.js"></script>
+</body>
+</html>

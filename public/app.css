@@ -1,0 +1,180 @@
+/* Outside: Lagos at night. Smoked glass on obsidian, electric coral for action,
+   palm emerald for good news, champagne gold for the special. Outfit for the
+   poster headlines, Plus Jakarta Sans for reading. Dark by design: it's an
+   app for nights out, so it stays dark in every theme. */
+
+:root {
+  --canvas: #0a0c10;
+  --surface: #12161f;
+  --raised: #1b2230;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --faint: #64748b;
+  --coral: #ff5e4d;
+  --coral-glow: rgba(255, 94, 77, 0.35);
+  --emerald: #00d285;
+  --gold: #f3c68f;
+  --display: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--canvas);
+  background-image: radial-gradient(60rem 40rem at 50% -10%, rgba(255, 94, 77, 0.10), transparent 60%);
+  color: var(--ink);
+  font: 400 15px/1.55 var(--body);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- sign-up ---------- */
+
+.signup {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand-name { font: 700 22px/1 var(--display); letter-spacing: -0.02em; }
+.brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 12px var(--coral-glow); }
+
+.stage { display: grid; place-items: center; height: 210px; }
+
+.card {
+  background: rgba(27, 34, 48, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--line-strong);
+  border-radius: 24px;
+  padding: 22px 18px 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.card h1 { margin: 0; font: 700 32px/1.1 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
+.sub { margin: -8px 0 4px; color: var(--muted); }
+.sub em { font-style: normal; color: var(--coral); font-weight: 600; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field span { font: 700 11px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.field input {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  font: 500 16px/1.2 var(--body);
+  padding: 13px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input::placeholder { color: var(--faint); }
+.field input:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255, 94, 77, 0.18); }
+.field input.ok { border-color: rgba(0, 210, 133, 0.55); }
+.field input.bad { border-color: var(--coral); }
+
+.caption {
+  margin: 2px 0 0;
+  min-height: 1.4em;
+  text-align: center;
+  font: 600 14px/1.4 var(--body);
+  color: var(--gold);
+  transition: opacity 0.2s;
+}
+.caption.bad { color: var(--coral); }
+
+.btn-primary {
+  appearance: none;
+  border: 0;
+  border-radius: 14px;
+  background: var(--coral);
+  color: #0a0c10;
+  font: 800 18px/1 var(--display);
+  letter-spacing: 0.02em;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+}
+.btn-primary:hover:not(:disabled) { box-shadow: 0 0 22px var(--coral-glow); }
+.btn-primary:active:not(:disabled) { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-primary:focus-visible, .field input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.error { margin: 0; color: var(--coral); text-align: center; font-weight: 600; }
+.fine { margin: 0; color: var(--faint); font-size: 12px; text-align: center; }
+
+/* ---------- the danfo ---------- */
+
+.stage { height: auto; margin: 4px 0 6px; }
+.scene { width: 100%; height: auto; display: block; overflow: hidden; border-radius: 22px; border: 1px solid var(--line); }
+.scene .stars circle { fill: #c9d4ff; opacity: 0.55; }
+.scene .road { fill: none; stroke: #2a3142; stroke-width: 6; stroke-linecap: round; }
+.scene .deck { fill: none; stroke: #39425a; stroke-width: 4; }
+.scene .tower { fill: #39425a; }
+.scene .cables path { stroke: #4a5571; stroke-width: 1; fill: none; }
+.scene .bridge-lights circle { fill: #3a4458; transition: fill 0.4s; }
+.scene .sign { font: 700 8px/1 var(--body); letter-spacing: 0.12em; fill: #5a6684; }
+.scene .glints path { stroke: rgba(243, 198, 143, 0.25); stroke-width: 1.5; stroke-linecap: round; }
+
+.danfo { transform-box: view-box; transform-origin: 70px 160px; }
+.danfo .bus { fill: #f7c21b; }
+.danfo .stripe { fill: #111; }
+.danfo .win { fill: #1a2233; }
+.danfo .pax { fill: #3b2a22; opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s cubic-bezier(.3, 1.6, .5, 1); }
+.danfo .pax.driver { opacity: 1; transform: none; }
+.danfo .conductor { stroke: #3b2a22; stroke-width: 2.4; stroke-linecap: round; fill: #3b2a22; opacity: 0; transform: translateX(-10px); transition: opacity 0.3s, transform 0.4s; }
+.danfo .wheel circle:first-child { fill: #12151c; stroke: #2a2f3a; stroke-width: 2; }
+.danfo .hub { fill: #9aa3b2; }
+.danfo .wheel { transform-box: fill-box; transform-origin: center; }
+.danfo .headlight { fill: #6b5d2a; transition: fill 0.3s; }
+.danfo .plate { font: 800 5.5px/1 var(--display); letter-spacing: 0.14em; fill: #f7c21b; }
+.danfo .smoke circle { fill: rgba(200, 210, 230, 0.25); opacity: 0; }
+
+/* Each correct detail, more passengers climb in. */
+.scene[data-level="1"] .p1,
+.scene[data-level="2"] :is(.p1, .p2, .p3),
+.scene[data-level="3"] .pax { opacity: 1; transform: none; }
+.scene[data-level="3"] .conductor { opacity: 1; transform: none; }
+.scene:not([data-level="0"]) .headlight { fill: #fff3b0; filter: drop-shadow(0 0 4px #fff3b0); }
+.scene[data-level="3"] .bridge-lights circle { fill: var(--gold); }
+
+/* Engine running: the bus rocks, faster the fuller it gets. */
+.scene:not([data-level="0"]) .body-bob { animation: idle var(--idle, 0.5s) ease-in-out infinite; }
+.scene[data-level="2"] { --idle: 0.35s; }
+.scene[data-level="3"] { --idle: 0.22s; }
+.scene[data-level="3"] .smoke circle { animation: puff 0.9s ease-out infinite; }
+.scene[data-level="3"] .smoke circle:nth-child(2) { animation-delay: 0.3s; }
+.scene[data-level="3"] .smoke circle:nth-child(3) { animation-delay: 0.6s; }
+
+/* Wrong detail: a passenger hops off and the bus jolts. */
+.scene.wobble .body-bob { animation: jolt 0.4s ease-in-out; }
+
+/* Outside: off it goes, up and over the Ikoyi Link Bridge. */
+.scene.drive .danfo { animation: drive 2.4s cubic-bezier(.45, 0, .7, 1) forwards; }
+.scene.drive .wheel { animation: spin 0.25s linear infinite; }
+.scene.drive .smoke circle { animation: puff 0.5s ease-out infinite; }
+
+@keyframes idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
+@keyframes jolt { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-5px) rotate(-1.5deg); } 65% { transform: translateX(4px); } }
+@keyframes puff { 0% { opacity: 0.55; transform: translate(0, 0) scale(0.6); } 100% { opacity: 0; transform: translate(-16px, -8px) scale(1.4); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+/* Along the road, up the ramp, across the bridge and off the edge, smaller as it goes. */
+@keyframes drive {
+  0% { transform: translate(0, 0); }
+  30% { transform: translate(70px, -1px); }
+  45% { transform: translate(115px, -18px) rotate(-28deg) scale(0.92); }
+  58% { transform: translate(160px, -36px) rotate(-4deg) scale(0.8); }
+  100% { transform: translate(360px, -47px) rotate(-3deg) scale(0.6); }
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene *, .scene { animation: none !important; transition: none !important; }
+}
