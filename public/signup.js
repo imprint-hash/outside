@@ -15,11 +15,11 @@ const check = {
 
 // What the conductor says at each level. {name} and {city} are filled in.
 const LINES = {
-  0: "The danfo is waiting for passengers…",
-  1: ["Oya, enter, {name}! 🚌", "{name} don enter. Who's next?"],
-  2: ["Shift, make another person sit 😂", "One chance remaining!"],
-  3: ["Danfo don full. {city} to Lagos, we move! 🚌💨", "Conductor is shouting OUTSIDE! 🎉"],
-  badEmail: "Abeg, that email no correct 😅",
+  0: "The bus is waiting for passengers…",
+  1: ["Welcome aboard, {name}! 🚌", "{name} is on board. Who's next?"],
+  2: ["Squeeze in, there's always room for one more 😂", "Almost full!"],
+  3: ["The bus is full. {city} to Lagos, let's go! 🚌💨", "The conductor is shouting OUTSIDE! 🎉"],
+  badEmail: "Hmm, that email doesn't look right 😅",
   shortName: "Just your first name, at least two letters",
 };
 const pick = (x) => (Array.isArray(x) ? x[Math.floor(Math.random() * x.length)] : x);
@@ -78,7 +78,7 @@ $("form").addEventListener("submit", async (e) => {
   go.disabled = true;
   $("error").hidden = true;
   scene.classList.add("drive");
-  say("Next stop: Ikoyi Link Bridge… you're outside 🎉");
+  say("Next stop: Ikoyi Link Bridge. You're outside 🎉");
   try {
     const res = await fetch("/api/auth/signup", {
       method: "POST",
