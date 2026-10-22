@@ -1,6 +1,6 @@
 /* Outside: Lagos at night. Smoked glass on obsidian, electric coral for action,
-   palm emerald for good news, champagne gold for the special. Outfit for the
-   poster headlines, Plus Jakarta Sans for reading. Dark by design: it's an
+   palm emerald for good news, champagne gold for the special. Nunito
+   throughout: rounded and friendly, set heavy. Dark by design: it's an
    app for nights out, so it stays dark in every theme. */
 
 :root {
@@ -16,8 +16,8 @@
   --coral-glow: rgba(255, 94, 77, 0.35);
   --emerald: #00d285;
   --gold: #f3c68f;
-  --display: "Outfit", "Segoe UI", system-ui, sans-serif;
-  --body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --display: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: dark;
 }
 
@@ -27,7 +27,7 @@ body {
   background: var(--canvas);
   background-image: radial-gradient(60rem 40rem at 50% -10%, rgba(255, 94, 77, 0.10), transparent 60%);
   color: var(--ink);
-  font: 400 15px/1.55 var(--body);
+  font: 600 15px/1.55 var(--body);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
 }
@@ -44,7 +44,7 @@ body {
 }
 
 .brand { display: flex; align-items: center; gap: 8px; }
-.brand-name { font: 700 22px/1 var(--display); letter-spacing: -0.02em; }
+.brand-name { font: 900 23px/1 var(--display); letter-spacing: -0.01em; }
 .brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 12px var(--coral-glow); }
 
 .stage { display: grid; place-items: center; height: 210px; }
@@ -60,18 +60,18 @@ body {
   flex-direction: column;
   gap: 14px;
 }
-.card h1 { margin: 0; font: 700 32px/1.1 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
-.sub { margin: -8px 0 4px; color: var(--muted); }
+.card h1 { margin: 0; font: 900 32px/1.15 var(--display); letter-spacing: -0.01em; text-wrap: balance; text-align: center; }
+.sub { margin: -8px 0 4px; color: var(--muted); font-weight: 700; text-align: center; }
 .sub em { font-style: normal; color: var(--coral); font-weight: 600; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field span { font: 700 11px/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.field span { font: 800 12px/1 var(--body); letter-spacing: 0.04em; color: var(--muted); }
 .field input {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--ink);
-  font: 500 16px/1.2 var(--body);
+  font: 700 16px/1.2 var(--body);
   padding: 13px 14px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -84,7 +84,7 @@ body {
   margin: 2px 0 0;
   min-height: 1.4em;
   text-align: center;
-  font: 600 14px/1.4 var(--body);
+  font: 800 14px/1.4 var(--body);
   color: var(--gold);
   transition: opacity 0.2s;
 }
@@ -96,8 +96,8 @@ body {
   border-radius: 14px;
   background: var(--coral);
   color: #0a0c10;
-  font: 800 18px/1 var(--display);
-  letter-spacing: 0.02em;
+  font: 900 18px/1 var(--display);
+  letter-spacing: 0.01em;
   padding: 16px;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
@@ -108,7 +108,7 @@ body {
 .btn-primary:focus-visible, .field input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 .error { margin: 0; color: var(--coral); text-align: center; font-weight: 600; }
-.fine { margin: 0; color: var(--faint); font-size: 12px; text-align: center; }
+.fine { margin: 0; color: var(--faint); font-size: 12px; font-weight: 700; text-align: center; }
 
 /* ---------- the danfo ---------- */
 
@@ -120,7 +120,7 @@ body {
 .scene .tower { fill: #39425a; }
 .scene .cables path { stroke: #4a5571; stroke-width: 1; fill: none; }
 .scene .bridge-lights circle { fill: #3a4458; transition: fill 0.4s; }
-.scene .sign { font: 700 8px/1 var(--body); letter-spacing: 0.12em; fill: #5a6684; }
+.scene .sign { font: 800 8px/1 var(--body); letter-spacing: 0.12em; fill: #5a6684; }
 .scene .glints path { stroke: rgba(243, 198, 143, 0.25); stroke-width: 1.5; stroke-linecap: round; }
 
 .danfo { transform-box: view-box; transform-origin: 70px 160px; }
@@ -134,7 +134,7 @@ body {
 .danfo .hub { fill: #9aa3b2; }
 .danfo .wheel { transform-box: fill-box; transform-origin: center; }
 .danfo .headlight { fill: #6b5d2a; transition: fill 0.3s; }
-.danfo .plate { font: 800 5.5px/1 var(--display); letter-spacing: 0.14em; fill: #f7c21b; }
+.danfo .plate { font: 900 5.5px/1 var(--display); letter-spacing: 0.14em; fill: #f7c21b; }
 .danfo .smoke circle { fill: rgba(200, 210, 230, 0.25); opacity: 0; }
 
 /* Each correct detail, more passengers climb in. */
