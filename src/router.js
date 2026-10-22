@@ -10,7 +10,7 @@ import { resolveOrigin, nearYou, translateCity, tonight, CATEGORIES } from "./pl
 import { eventsForYou, afterTheShow, seededEvents } from "./events.js";
 import * as people from "./people.js";
 import { dashboard } from "./organiser.js";
-import { get, put, list } from "./store.js";
+import { get, put, list, storeName, StoreError } from "./store.js";
 import { TYPES } from "./taste.js";
 
 class HttpError extends Error {
@@ -58,7 +58,7 @@ async function allEvents() {
 
 /** [method, path pattern, handler(ctx)] — :name segments become ctx.params. */
 const routes = [
-  ["GET", "/api/health", async () => ({ ok: true, qloo: stats })],
+  ["GET", "/api/health", async () => ({ ok: true, store: storeName, qloo: stats })],
 
   ["POST", "/api/auth/signup", async ({ body }) => {
     const { user, token, returning } = await signUp(body);
@@ -174,7 +174,7 @@ export async function handle(req, res) {
     }
     return send(200, await hit.fn({ req, body, user, params: hit.params, query: url.searchParams }));
   } catch (err) {
-    const known = err instanceof HttpError || err instanceof QlooError || err instanceof AuthError || err instanceof people.RuleError;
+    const known = err instanceof HttpError || err instanceof QlooError || err instanceof AuthError || err instanceof people.RuleError || err instanceof StoreError;
     if (!known) console.error(err);
     return send(known ? err.status || 400 : 500, { error: known ? err.message : "Something went wrong on our side. Please try again." });
   }

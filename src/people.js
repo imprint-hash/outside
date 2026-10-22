@@ -68,7 +68,7 @@ export async function checkIn(user, venueId, now = new Date()) {
   if (!venue.location) throw new RuleError("That place has no location on record, so you can't check in there.", 422);
   const expiresAt = new Date(now.getTime() + untilSixAm(now, zoneFor(venue, "UTC")) * 60_000).toISOString();
   // One check-in at a time: a new one replaces the old.
-  for (const c of await list("checkins", (c) => c.userId === user.id)) await put("checkins", { ...c, endedAt: now.toISOString() });
+  for (const c of await list("checkins", (c) => c.userId === user.id && !c.endedAt, { userId: user.id })) await put("checkins", { ...c, endedAt: now.toISOString() });
   return put("checkins", {
     userId: user.id,
     venueId,
@@ -80,29 +80,33 @@ export async function checkIn(user, venueId, now = new Date()) {
 }
 
 export async function checkOut(user, now = new Date()) {
-  for (const c of await activeCheckins((c) => c.userId === user.id, now)) await put("checkins", { ...c, endedAt: now.toISOString() });
+  for (const c of await activeCheckins((c) => c.userId === user.id, now, { userId: user.id })) await put("checkins", { ...c, endedAt: now.toISOString() });
 }
 
-async function activeCheckins(where, now = new Date()) {
-  return list("checkins", (c) => !c.endedAt && new Date(c.expiresAt) > now && where(c));
+async function activeCheckins(where, now = new Date(), match = {}) {
+  return list("checkins", (c) => !c.endedAt && new Date(c.expiresAt) > now && where(c), match);
 }
 
 export async function myCheckin(user, now = new Date()) {
-  return (await activeCheckins((c) => c.userId === user.id, now))[0] ?? null;
+  return (await activeCheckins((c) => c.userId === user.id, now, { userId: user.id }))[0] ?? null;
 }
 
 /* ---------- blocking ---------- */
 
 async function blocked(a, b) {
-  return (await list("blocks", (x) => (x.by === a && x.who === b) || (x.by === b && x.who === a))).length > 0;
+  const [mine, theirs] = await Promise.all([list("blocks", (x) => x.who === b, { by: a }), list("blocks", (x) => x.who === a, { by: b })]);
+  return mine.length + theirs.length > 0;
 }
 
 export async function block(user, otherId, now = new Date()) {
   if (otherId === user.id) throw new RuleError("You can't block yourself.", 400);
   if (!(await blocked(user.id, otherId))) await put("blocks", { by: user.id, who: otherId, at: now.toISOString() });
   // End everything open between the two of them.
-  for (const h of await list("hellos", (h) => pair(h, user.id, otherId) && h.status !== "closed")) await put("hellos", { ...h, status: "closed", closedAt: now.toISOString() });
-  for (const m of await list("meetups", (m) => m.users.includes(user.id) && m.users.includes(otherId) && !m.endedAt)) await put("meetups", { ...m, endedAt: now.toISOString(), endedReason: "blocked" });
+  const between = (await Promise.all([list("hellos", () => true, { from: user.id, to: otherId }), list("hellos", () => true, { from: otherId, to: user.id })])).flat();
+  for (const h of between.filter((h) => h.status !== "closed")) await put("hellos", { ...h, status: "closed", closedAt: now.toISOString() });
+  for (const h of between) {
+    for (const m of await list("meetups", (m) => !m.endedAt, { helloId: h.id })) await put("meetups", { ...m, endedAt: now.toISOString(), endedReason: "blocked" });
+  }
 }
 
 export async function report(user, otherId, reason, now = new Date()) {
@@ -134,7 +138,7 @@ export async function whoIsHere(viewer, now = new Date()) {
   if (!mine) throw new RuleError("Check in somewhere first to see who's there.", 409);
   if (viewer.visibility === "nobody") return { venue: mine.venueName, people: [], groupMinded: 0, note: "You're invisible tonight, so you can't see others either." };
   const myProfile = await profileOf(viewer);
-  const others = await activeCheckins((c) => c.venueId === mine.venueId && c.userId !== viewer.id, now);
+  const others = await activeCheckins((c) => c.venueId === mine.venueId && c.userId !== viewer.id, now, { venueId: mine.venueId });
 
   const people = [];
   let groupMinded = 0;
@@ -158,9 +162,9 @@ export async function sayHi(user, toId, now = new Date()) {
   const here = await whoIsHere(user, now);
   const target = here.people.find((p) => p.userId === toId);
   if (!target) throw new RuleError("They're not here, or they've chosen not to be seen.", 404);
-  const lastHour = await list("hellos", (h) => h.from === user.id && now - new Date(h.at) < 3600_000);
+  const lastHour = await list("hellos", (h) => h.from === user.id && now - new Date(h.at) < 3600_000, { from: user.id });
   if (lastHour.length >= HELLOS_PER_HOUR) throw new RuleError("That's a lot of hellos for one hour. Try again a bit later.", 429);
-  const open = await list("hellos", (h) => pair(h, user.id, toId) && (h.status === "pending" || h.status === "accepted"));
+  const open = (await Promise.all([list("hellos", () => true, { from: user.id, to: toId }), list("hellos", () => true, { from: toId, to: user.id })])).flat().filter((h) => h.status === "pending" || h.status === "accepted");
   if (open.length) return open[0];
   const mine = await myCheckin(user, now);
   return put("hellos", { from: user.id, to: toId, venueId: mine.venueId, venueName: mine.venueName, match: target.match, line: target.line, status: "pending", at: now.toISOString() });
@@ -168,7 +172,7 @@ export async function sayHi(user, toId, now = new Date()) {
 
 /** Hellos waiting for you: their first name, the match, and why. Nothing more. */
 export async function inbox(user) {
-  const hs = await list("hellos", (h) => h.to === user.id && h.status === "pending");
+  const hs = await list("hellos", (h) => h.to === user.id && h.status === "pending", { to: user.id, status: "pending" });
   return Promise.all(hs.map(async (h) => ({ helloId: h.id, firstName: (await get("users", h.from))?.firstName, match: h.match, line: h.line, venue: h.venueName, at: h.at })));
 }
 
@@ -198,7 +202,7 @@ export async function sendMessage(user, helloId, text, now = new Date()) {
 
 export async function messages(user, helloId) {
   const h = await acceptedHello(user, helloId);
-  const all = await list("messages", (m) => m.helloId === h.id);
+  const all = await list("messages", (m) => m.helloId === h.id, { helloId: h.id });
   return all.sort((a, b) => a.at.localeCompare(b.at)).map((m) => ({ mine: m.from === user.id, text: m.text, at: m.at }));
 }
 
@@ -210,7 +214,7 @@ export async function messages(user, helloId) {
  */
 export async function startMeetup(user, helloId, now = new Date()) {
   const h = await acceptedHello(user, helloId);
-  let m = (await list("meetups", (x) => x.helloId === h.id && !x.endedAt))[0];
+  let m = (await list("meetups", (x) => x.helloId === h.id && !x.endedAt, { helloId: h.id }))[0];
   if (!m) m = { helloId: h.id, users: [h.from, h.to], venueId: h.venueId, consent: {}, positions: {} };
   m.consent = { ...m.consent, [user.id]: now.toISOString() };
   if (m.users.every((u) => m.consent[u]) && !m.activeAt) {
@@ -242,7 +246,7 @@ export async function updatePosition(user, meetupId, pos, now = new Date()) {
   if (!m.activeAt) throw new RuleError("Waiting for them to turn on meet-up mode too.", 409);
   const lat = Number(pos?.lat), lon = Number(pos?.lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) throw new RuleError("That location doesn't look right.", 400);
-  const checkin = (await list("checkins", (c) => c.userId === user.id && c.venueId === m.venueId)).at(-1);
+  const checkin = (await list("checkins", (c) => c.venueId === m.venueId, { userId: user.id, venueId: m.venueId })).sort((a, b) => a.at.localeCompare(b.at)).at(-1);
   const venue = checkin?.venueLocation;
   if (venue && distanceM(venue, { lat, lon }) > MEETUP_RADIUS_M) {
     await put("meetups", { ...m, endedAt: now.toISOString(), endedReason: "left the area", positions: {} });

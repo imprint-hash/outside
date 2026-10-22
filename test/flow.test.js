@@ -7,8 +7,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const LIVE = process.env.LIVE === "1";
+// FLOW_STORE=supabase runs against the hosted database; test accounts are
+// tagged with this run's id and deleted afterwards.
+const HOSTED = process.env.FLOW_STORE === "supabase";
+const RUN = Date.now().toString(36);
 const dir = mkdtempSync(join(tmpdir(), "outside-"));
-process.env.OUTSIDE_STORE = join(dir, "store.json");
+if (!HOSTED) process.env.OUTSIDE_STORE = join(dir, "store.json");
 
 let server, base;
 before(async () => {
@@ -19,9 +23,18 @@ before(async () => {
   await new Promise((r) => server.listen(0, r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
-after(() => {
+after(async () => {
   server?.close();
   rmSync(dir, { recursive: true, force: true });
+  if (HOSTED && LIVE) {
+    const { list, remove } = await import("../src/store.js");
+    const ids = new Set(Object.values(U).filter(Boolean));
+    const mine = (r) => ids.has(r.id) || ids.has(r.userId) || ids.has(r.from) || ids.has(r.to) || ids.has(r.by) || ids.has(r.who) || ids.has(r.ownerId) || (r.users || []).some((u) => ids.has(u));
+    for (const c of ["users", "checkins", "hellos", "messages", "meetups", "blocks", "reports", "events"]) {
+      for (const r of await list(c, mine)) await remove(c, r.id);
+    }
+    for (const r of await list("users", (u) => u.email?.endsWith(`+${RUN}@test.dev`))) await remove("users", r.id);
+  }
 });
 
 async function call(method, path, { token, body } = {}) {
@@ -37,12 +50,12 @@ async function call(method, path, { token, body } = {}) {
 const T = {}; // tokens
 const U = {}; // user ids
 const people = {
-  me: { email: "me@test.dev", firstName: "Ife", homeCity: "Houston", taste: [["artist", "Tems"], ["artist", "SZA"], ["artist", "Burna Boy"], ["place", "Nobu Hotel London Shoreditch"]] },
-  julie: { email: "julie@test.dev", firstName: "Julie", homeCity: "Atlanta", taste: [["artist", "Ayra Starr"], ["artist", "Summer Walker"], ["artist", "Wizkid"], ["artist", "Tems"]] },
-  bob: { email: "bob@test.dev", firstName: "Bob", homeCity: "London", visibility: "strong", taste: [["artist", "Metallica"], ["artist", "Slayer"], ["artist", "Megadeth"]] },
-  kemi: { email: "kemi@test.dev", firstName: "Kemi", homeCity: "Houston", visibility: "verified", taste: [["artist", "Tems"], ["artist", "Rema"]] },
-  dayo: { email: "dayo@test.dev", firstName: "Dayo", homeCity: "Houston", visibility: "groups", taste: [["artist", "Wizkid"], ["artist", "Tems"], ["artist", "Burna Boy"]] },
-  zee: { email: "zee@test.dev", firstName: "Zee", homeCity: "London", visibility: "nobody", taste: [["artist", "Tems"], ["artist", "SZA"]] },
+  me: { email: `me+${RUN}@test.dev`, firstName: "Ife", homeCity: "Houston", taste: [["artist", "Tems"], ["artist", "SZA"], ["artist", "Burna Boy"], ["place", "Nobu Hotel London Shoreditch"]] },
+  julie: { email: `julie+${RUN}@test.dev`, firstName: "Julie", homeCity: "Atlanta", taste: [["artist", "Ayra Starr"], ["artist", "Summer Walker"], ["artist", "Wizkid"], ["artist", "Tems"]] },
+  bob: { email: `bob+${RUN}@test.dev`, firstName: "Bob", homeCity: "London", visibility: "strong", taste: [["artist", "Metallica"], ["artist", "Slayer"], ["artist", "Megadeth"]] },
+  kemi: { email: `kemi+${RUN}@test.dev`, firstName: "Kemi", homeCity: "Houston", visibility: "verified", taste: [["artist", "Tems"], ["artist", "Rema"]] },
+  dayo: { email: `dayo+${RUN}@test.dev`, firstName: "Dayo", homeCity: "Houston", visibility: "groups", taste: [["artist", "Wizkid"], ["artist", "Tems"], ["artist", "Burna Boy"]] },
+  zee: { email: `zee+${RUN}@test.dev`, firstName: "Zee", homeCity: "London", visibility: "nobody", taste: [["artist", "Tems"], ["artist", "SZA"]] },
 };
 
 test("the whole night, end to end", { skip: !LIVE, timeout: 600_000 }, async (t) => {
@@ -62,12 +75,13 @@ test("the whole night, end to end", { skip: !LIVE, timeout: 600_000 }, async (t)
       T[k] = r.token;
       U[k] = r.user.id;
     }
-    const again = await call("POST", "/api/auth/signup", { body: { email: "ME@test.dev" } });
+    const again = await call("POST", "/api/auth/signup", { body: { email: `ME+${RUN}@test.dev` } });
     assert.equal(again.returning, true);
     const early = await call("POST", "/api/places/near", { token: T.me, body: { stay: "Eko Hotel" } });
     assert.equal(early.status, 409);
-    const org = await call("POST", "/api/auth/signup", { body: { email: "org@test.dev", firstName: "Promoter", organiser: true } });
+    const org = await call("POST", "/api/auth/signup", { body: { email: `org+${RUN}@test.dev`, firstName: "Promoter", organiser: true } });
     T.org = org.token;
+    U.org = org.user.id;
   });
 
   await t.test("taste: names become Qloo entities; unknown names come back to fix", async () => {
@@ -156,7 +170,7 @@ test("the whole night, end to end", { skip: !LIVE, timeout: 600_000 }, async (t)
     assert.equal((await call("POST", "/api/hello", { token: T.me, body: { to: U.julie } })).hello.id, U.hello, "no duplicate hellos");
     const inbox = await call("GET", "/api/hello/inbox", { token: T.julie });
     assert.equal(inbox.hellos[0].firstName, "Ife");
-    assert.equal(JSON.stringify(inbox).includes("me@test.dev"), false, "no email leaks");
+    assert.equal(JSON.stringify(inbox).includes("@test.dev"), false, "no email leaks");
     assert.equal((await call("POST", `/api/hello/${U.hello}/messages`, { token: T.me, body: { text: "hey" } })).status, 403);
     assert.equal((await call("POST", `/api/hello/${U.hello}/answer`, { token: T.me, body: { accept: true } })).status, 404, "only Julie can answer");
     assert.equal((await call("POST", `/api/hello/${U.hello}/answer`, { token: T.julie, body: { accept: true } })).hello.status, "accepted");
