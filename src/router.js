@@ -8,6 +8,7 @@ import { QlooError, searchEntities, stats } from "./qloo.js";
 import { AuthError, signUp, userFromToken, selfView } from "./auth.js";
 import { resolveOrigin, nearYou, translateCity, tonight, CATEGORIES } from "./places.js";
 import { eventsForYou, afterTheShow, seededEvents } from "./events.js";
+import { refreshLagosEvents } from "./lagos-events.js";
 import * as people from "./people.js";
 import { dashboard } from "./organiser.js";
 import { get, put, list, storeName, StoreError } from "./store.js";
@@ -51,9 +52,19 @@ const kindsFrom = (v, fallback) => {
   return ks.length ? ks : fallback;
 };
 
+/**
+ * Real events first: ones found by the daily search and ones organisers add.
+ * The hand-written examples only fill in while fewer than three real events
+ * are known; the announced Detty December opening night always stays.
+ */
 async function allEvents() {
-  const added = await list("events");
-  return [...seededEvents(), ...added];
+  const stored = await list("events");
+  const realIds = new Set(stored.map((e) => e.title.toLowerCase()));
+  const real = stored.filter((e) => new Date(e.ends || e.starts) > Date.now() - 6 * 3600_000);
+  const seeded = seededEvents().filter((e) => (e.status === "announced" || real.length < 3) && !realIds.has(e.title.toLowerCase()));
+  // The found Detty December opening replaces our hand-entered copy of it.
+  const foundOpening = real.some((e) => /detty december fest/i.test(e.title) && e.starts.slice(0, 10) === "2026-12-18");
+  return [...seeded.filter((e) => !(foundOpening && e.id === "ddf-2026-opening")), ...real];
 }
 
 /** [method, path pattern, handler(ctx)] — :name segments become ctx.params. */
@@ -125,6 +136,12 @@ const routes = [
   ["POST", "/api/report", async ({ user, body }) => (await people.report(user, body.userId, body.reason), { reported: true, blocked: true })],
   ["GET", "/api/share-night", async ({ user }) => people.shareMyNight(user)],
 
+  // The daily events search. Called by a scheduler with the admin token.
+  ["POST", "/api/admin/refresh-events", async ({ req }) => {
+    const want = process.env.ADMIN_TOKEN;
+    if (!want || req.headers.authorization !== `Bearer ${want}`) throw new HttpError("Not allowed.", 403);
+    return refreshLagosEvents();
+  }],
   ["GET", "/api/organiser/dashboard", async ({ user, query }) => {
     if (user.role !== "organiser") throw new HttpError("This view is for event organisers and venues.", 403);
     const mine = (await allEvents()).filter((e) => e.ownerId === user.id || e.status === "announced");
@@ -143,7 +160,7 @@ const routes = [
   }],
 ];
 
-const PUBLIC = new Set(["/api/health", "/api/auth/signup", "/api/search"]);
+const PUBLIC = new Set(["/api/health", "/api/auth/signup", "/api/search", "/api/admin/refresh-events"]);
 
 function match(method, path) {
   for (const [m, pattern, fn] of routes) {
