@@ -21,50 +21,70 @@
   <section class="stage" aria-hidden="true">
     <svg id="scene" class="scene" viewBox="0 0 400 220" data-level="0">
       <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1220"/><stop offset="1" stop-color="#1a1424"/></linearGradient>
-        <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#11192a"/><stop offset="1" stop-color="#0a0c10"/></linearGradient>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#241a2e"/></linearGradient>
+        <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16203a"/><stop offset="1" stop-color="#0a0c10"/></linearGradient>
+        <linearGradient id="tarmac" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c2232"/><stop offset="1" stop-color="#2a3142"/></linearGradient>
+        <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ff3b30" stop-opacity="0.7"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
       </defs>
-      <rect width="400" height="220" rx="22" fill="url(#sky)"/>
-      <g class="stars"><circle cx="40" cy="26" r="1.2"/><circle cx="96" cy="44" r="1"/><circle cx="168" cy="20" r="1.3"/><circle cx="236" cy="38" r="1"/><circle cx="352" cy="22" r="1.2"/><circle cx="300" cy="56" r="0.9"/></g>
-      <!-- Lekki–Ikoyi Link Bridge: one tower, fanned cables -->
-      <g class="bridge">
-        <path class="deck" d="M150 132 L400 120"/>
-        <path class="tower" d="M300 124 L306 44 L312 124"/>
-        <g class="cables">
-          <path d="M306 52 L196 129"/><path d="M306 60 L226 127"/><path d="M306 68 L256 126"/><path d="M306 76 L282 125"/>
-          <path d="M306 52 L398 121"/><path d="M306 60 L376 122"/><path d="M306 68 L354 123"/><path d="M306 76 L332 124"/>
-        </g>
-        <g class="bridge-lights"><circle cx="196" cy="129" r="1.6"/><circle cx="256" cy="126" r="1.6"/><circle cx="354" cy="123" r="1.6"/><circle cx="306" cy="44" r="2.2"/></g>
-        <text class="sign" x="332" y="110">IKOYI LINK</text>
-      </g>
-      <rect y="150" width="400" height="70" fill="url(#water)"/>
-      <path class="road" d="M0 170 L160 170 L210 134 L400 122" />
-      <g class="glints"><path d="M40 196h26M120 206h18M250 188h30M330 202h22"/></g>
+      <rect width="400" height="220" fill="url(#sky)"/>
+      <g class="stars"><circle cx="40" cy="22" r="1.2"/><circle cx="92" cy="40" r="1"/><circle cx="150" cy="16" r="1.3"/><circle cx="330" cy="30" r="1"/><circle cx="372" cy="14" r="1.2"/><circle cx="210" cy="26" r="0.9"/></g>
 
-      <!-- The danfo -->
+      <!-- The Lekki–Ikoyi Link Bridge on the horizon: one tower, fanned cables -->
+      <g class="bridge">
+        <path class="tower" d="M253 100 L257 36 L261 100"/>
+        <g class="cables">
+          <path d="M257 42 L150 98"/><path d="M257 50 L178 98"/><path d="M257 58 L206 98"/><path d="M257 66 L230 98"/>
+          <path d="M257 42 L362 98"/><path d="M257 50 L336 98"/><path d="M257 58 L308 98"/><path d="M257 66 L284 98"/>
+        </g>
+        <path class="deck" d="M110 99 L400 97"/>
+        <g class="bridge-lights"><circle cx="150" cy="98.5" r="1.4"/><circle cx="206" cy="98" r="1.4"/><circle cx="308" cy="97.6" r="1.4"/><circle cx="362" cy="97.3" r="1.4"/><circle cx="257" cy="36" r="2"/></g>
+        <text class="sign" x="296" y="88">IKOYI LINK</text>
+      </g>
+
+      <rect y="100" width="400" height="120" fill="url(#water)"/>
+      <g class="glints"><path d="M30 130h30M60 170h22M330 140h34M320 186h26M18 200h20M368 206h18"/></g>
+
+      <!-- The road, running away from us to the bridge -->
+      <path class="road" d="M196 100 L204 100 L330 220 L70 220 Z" fill="url(#tarmac)"/>
+      <path class="kerb" d="M196 100 L70 220 M204 100 L330 220"/>
+      <path class="lane" d="M200 102 L200 220"/>
+
+      <!-- Street lights along both sides, shrinking with distance -->
+      <g class="lamps">
+        <path d="M86 205 V160 h8"/><circle cx="96" cy="160" r="2.6"/>
+        <path d="M124 166 V136 h6"/><circle cx="131" cy="136" r="2"/>
+        <path d="M156 132 V116 h4"/><circle cx="161" cy="116" r="1.4"/>
+        <path d="M314 205 V160 h-8"/><circle cx="304" cy="160" r="2.6"/>
+        <path d="M276 166 V136 h-6"/><circle cx="269" cy="136" r="2"/>
+        <path d="M244 132 V116 h-4"/><circle cx="239" cy="116" r="1.4"/>
+      </g>
+
+      <!-- The danfo, from behind -->
       <g id="danfo" class="danfo">
         <g class="body-bob">
-          <path class="bus" d="M22 128 h104 a8 8 0 0 1 8 8 v22 a4 4 0 0 1 -4 4 h-112 a4 4 0 0 1 -4 -4 v-24 l6 -6 z"/>
-          <path class="stripe" d="M14 146 h120 v5 h-120 z"/>
-          <path class="stripe" d="M14 154 h120 v3 h-120 z"/>
-          <rect class="win" x="24" y="132" width="18" height="11" rx="2"/>
-          <rect class="win" x="46" y="132" width="18" height="11" rx="2"/>
-          <rect class="win" x="68" y="132" width="18" height="11" rx="2"/>
-          <rect class="win" x="90" y="132" width="18" height="11" rx="2"/>
-          <path class="win front" d="M112 132 h12 a4 4 0 0 1 4 4 v7 h-16 z"/>
-          <g class="pax p1"><circle cx="33" cy="137" r="3"/><path d="M28 143 a5 4 0 0 1 10 0z"/></g>
-          <g class="pax p2"><circle cx="55" cy="137" r="3"/><path d="M50 143 a5 4 0 0 1 10 0z"/></g>
-          <g class="pax p3"><circle cx="77" cy="137" r="3"/><path d="M72 143 a5 4 0 0 1 10 0z"/></g>
-          <g class="pax p4"><circle cx="99" cy="137" r="3"/><path d="M94 143 a5 4 0 0 1 10 0z"/></g>
-          <g class="pax driver"><circle cx="119" cy="137" r="3"/><path d="M114 143 a5 4 0 0 1 10 0z"/></g>
+          <ellipse class="shadow" cx="200" cy="208" rx="58" ry="5"/>
+          <rect class="wheel" x="155" y="190" width="18" height="18" rx="4"/>
+          <rect class="wheel" x="227" y="190" width="18" height="18" rx="4"/>
+          <rect class="roof" x="160" y="104" width="80" height="5" rx="2"/>
+          <rect class="bus" x="150" y="108" width="100" height="88" rx="10"/>
+          <rect class="win" x="160" y="116" width="80" height="34" rx="5"/>
+          <g class="pax p1"><circle cx="173" cy="134" r="5"/><path d="M164 150 a9 7 0 0 1 18 0z"/></g>
+          <g class="pax p2"><circle cx="192" cy="133" r="5"/><path d="M183 150 a9 7 0 0 1 18 0z"/></g>
+          <g class="pax p3"><circle cx="210" cy="134" r="5"/><path d="M201 150 a9 7 0 0 1 18 0z"/></g>
+          <g class="pax p4"><circle cx="228" cy="133" r="5"/><path d="M219 150 a9 7 0 0 1 18 0z"/></g>
+          <rect class="stripe" x="150" y="156" width="100" height="6"/>
+          <rect class="stripe" x="150" y="166" width="100" height="3"/>
+          <circle class="glow g1" cx="161" cy="180" r="14"/>
+          <circle class="glow g2" cx="239" cy="180" r="14"/>
+          <rect class="tail" x="155" y="173" width="12" height="14" rx="2"/>
+          <rect class="tail" x="233" y="173" width="12" height="14" rx="2"/>
+          <rect class="plate-bg" x="182" y="176" width="36" height="11" rx="2"/>
+          <text class="plate" x="200" y="184">OUTSIDE</text>
+          <rect class="bumper" x="146" y="190" width="108" height="6" rx="3"/>
           <!-- the conductor hanging off the side door -->
-          <g class="conductor"><circle cx="10" cy="132" r="3.4"/><path d="M10 136 v12 M10 140 l6 -4 M10 148 l-4 8 M10 148 l4 8"/></g>
-          <circle class="headlight" cx="131" cy="152" r="2.6"/>
-          <text class="plate" x="58" y="153.6">OUTSIDE</text>
+          <g class="conductor"><circle cx="259" cy="122" r="5"/><path d="M259 127 v20 M259 133 l-9 -6 M259 147 l-5 12 M259 147 l6 12"/></g>
         </g>
-        <g class="wheel w1"><circle cx="38" cy="163" r="8"/><circle class="hub" cx="38" cy="163" r="3"/></g>
-        <g class="wheel w2"><circle cx="110" cy="163" r="8"/><circle class="hub" cx="110" cy="163" r="3"/></g>
-        <g class="smoke"><circle cx="4" cy="158" r="3"/><circle cx="-4" cy="154" r="4"/><circle cx="-13" cy="150" r="5"/></g>
+        <g class="smoke"><circle cx="148" cy="200" r="4"/><circle cx="140" cy="196" r="5"/><circle cx="131" cy="191" r="6"/></g>
       </g>
     </svg>
   </section>

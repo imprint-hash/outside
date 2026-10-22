@@ -110,40 +110,46 @@ body {
 .error { margin: 0; color: var(--coral); text-align: center; font-weight: 600; }
 .fine { margin: 0; color: var(--faint); font-size: 12px; font-weight: 700; text-align: center; }
 
-/* ---------- the danfo ---------- */
+/* ---------- the danfo, seen from behind ---------- */
 
 .stage { height: auto; margin: 4px 0 6px; }
 .scene { width: 100%; height: auto; display: block; overflow: hidden; border-radius: 22px; border: 1px solid var(--line); }
 .scene .stars circle { fill: #c9d4ff; opacity: 0.55; }
-.scene .road { fill: none; stroke: #2a3142; stroke-width: 6; stroke-linecap: round; }
-.scene .deck { fill: none; stroke: #39425a; stroke-width: 4; }
-.scene .tower { fill: #39425a; }
-.scene .cables path { stroke: #4a5571; stroke-width: 1; fill: none; }
+.scene .tower { fill: #3d4762; }
+.scene .cables path { stroke: #4d587a; stroke-width: 0.8; fill: none; }
+.scene .deck { stroke: #3d4762; stroke-width: 3; fill: none; }
 .scene .bridge-lights circle { fill: #3a4458; transition: fill 0.4s; }
-.scene .sign { font: 800 8px/1 var(--body); letter-spacing: 0.12em; fill: #5a6684; }
-.scene .glints path { stroke: rgba(243, 198, 143, 0.25); stroke-width: 1.5; stroke-linecap: round; }
+.scene .sign { font: 800 7px/1 var(--body); letter-spacing: 0.14em; fill: #5a6684; }
+.scene .glints path { stroke: rgba(243, 198, 143, 0.22); stroke-width: 1.5; stroke-linecap: round; }
+.scene .kerb { stroke: #3a4258; stroke-width: 1.5; fill: none; }
+.scene .lane { stroke: #f3c68f; stroke-width: 2; stroke-dasharray: 10 12; opacity: 0.55; fill: none; }
+.scene .lamps path { stroke: #39425a; stroke-width: 1.6; fill: none; }
+.scene .lamps circle { fill: #4a5268; transition: fill 0.4s; }
 
-.danfo { transform-box: view-box; transform-origin: 70px 160px; }
+.danfo { transform-box: view-box; transform-origin: 200px 206px; }
+.danfo .shadow { fill: rgba(0, 0, 0, 0.45); }
+.danfo .wheel { fill: #0f1218; }
+.danfo .roof { fill: #c99a10; }
 .danfo .bus { fill: #f7c21b; }
+.danfo .win { fill: #18202f; }
 .danfo .stripe { fill: #111; }
-.danfo .win { fill: #1a2233; }
-.danfo .pax { fill: #3b2a22; opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s cubic-bezier(.3, 1.6, .5, 1); }
-.danfo .pax.driver { opacity: 1; transform: none; }
-.danfo .conductor { stroke: #3b2a22; stroke-width: 2.4; stroke-linecap: round; fill: #3b2a22; opacity: 0; transform: translateX(-10px); transition: opacity 0.3s, transform 0.4s; }
-.danfo .wheel circle:first-child { fill: #12151c; stroke: #2a2f3a; stroke-width: 2; }
-.danfo .hub { fill: #9aa3b2; }
-.danfo .wheel { transform-box: fill-box; transform-origin: center; }
-.danfo .headlight { fill: #6b5d2a; transition: fill 0.3s; }
-.danfo .plate { font: 900 5.5px/1 var(--display); letter-spacing: 0.14em; fill: #f7c21b; }
-.danfo .smoke circle { fill: rgba(200, 210, 230, 0.25); opacity: 0; }
+.danfo .pax { fill: #4a3328; opacity: 0; transform: translateY(8px); transition: opacity 0.35s, transform 0.4s cubic-bezier(.3, 1.6, .5, 1); }
+.danfo .tail { fill: #5e1a16; transition: fill 0.3s; }
+.danfo .glow { fill: url(#glow); opacity: 0; transition: opacity 0.3s; }
+.danfo .plate-bg { fill: #f4efe2; }
+.danfo .plate { font: 900 7px/1 var(--display); letter-spacing: 0.08em; fill: #111; text-anchor: middle; }
+.danfo .bumper { fill: #1a1d24; }
+.danfo .conductor { stroke: #4a3328; stroke-width: 3; stroke-linecap: round; fill: #4a3328; opacity: 0; transform: translateX(10px); transition: opacity 0.3s, transform 0.4s; }
+.danfo .smoke circle { fill: rgba(200, 210, 230, 0.28); opacity: 0; }
 
 /* Each correct detail, more passengers climb in. */
 .scene[data-level="1"] .p1,
 .scene[data-level="2"] :is(.p1, .p2, .p3),
 .scene[data-level="3"] .pax { opacity: 1; transform: none; }
 .scene[data-level="3"] .conductor { opacity: 1; transform: none; }
-.scene:not([data-level="0"]) .headlight { fill: #fff3b0; filter: drop-shadow(0 0 4px #fff3b0); }
-.scene[data-level="3"] .bridge-lights circle { fill: var(--gold); }
+.scene:not([data-level="0"]) .tail { fill: #ff3b30; }
+.scene:not([data-level="0"]) .glow { opacity: 1; }
+.scene[data-level="3"] :is(.bridge-lights circle, .lamps circle) { fill: var(--gold); }
 
 /* Engine running: the bus rocks, faster the fuller it gets. */
 .scene:not([data-level="0"]) .body-bob { animation: idle var(--idle, 0.5s) ease-in-out infinite; }
@@ -153,26 +159,23 @@ body {
 .scene[data-level="3"] .smoke circle:nth-child(2) { animation-delay: 0.3s; }
 .scene[data-level="3"] .smoke circle:nth-child(3) { animation-delay: 0.6s; }
 
-/* Wrong detail: a passenger hops off and the bus jolts. */
+/* Wrong detail: the bus jolts. */
 .scene.wobble .body-bob { animation: jolt 0.4s ease-in-out; }
 
-/* Outside: off it goes, up and over the Ikoyi Link Bridge. */
-.scene.drive .danfo { animation: drive 2.4s cubic-bezier(.45, 0, .7, 1) forwards; }
-.scene.drive .wheel { animation: spin 0.25s linear infinite; }
-.scene.drive .smoke circle { animation: puff 0.5s ease-out infinite; }
+/* Outside: it pulls away up the road, shrinking towards the bridge until it's gone. */
+.scene.drive .danfo { animation: drive 2.6s cubic-bezier(.5, 0, .75, 1) forwards; }
+.scene.drive .smoke circle { animation: puff 0.45s ease-out infinite; }
+.scene.drive .lane { animation: lane 0.5s linear infinite; }
 
 @keyframes idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
 @keyframes jolt { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-5px) rotate(-1.5deg); } 65% { transform: translateX(4px); } }
-@keyframes puff { 0% { opacity: 0.55; transform: translate(0, 0) scale(0.6); } 100% { opacity: 0; transform: translate(-16px, -8px) scale(1.4); } }
-@keyframes spin { to { transform: rotate(360deg); } }
-/* Along the road, up the ramp, across the bridge and off the edge, smaller as it goes. */
+@keyframes puff { 0% { opacity: 0.6; transform: translate(0, 0) scale(0.6); } 100% { opacity: 0; transform: translate(-14px, -10px) scale(1.5); } }
+@keyframes lane { to { stroke-dashoffset: -22; } }
 @keyframes drive {
-  0% { transform: translate(0, 0); }
-  30% { transform: translate(70px, -1px); }
-  45% { transform: translate(115px, -18px) rotate(-28deg) scale(0.92); }
-  58% { transform: translate(160px, -36px) rotate(-4deg) scale(0.8); }
-  100% { transform: translate(360px, -47px) rotate(-3deg) scale(0.6); }
-}
+  0% { transform: none; opacity: 1; }
+  12% { transform: translateY(2px) scale(1.02); }
+  70% { transform: translateY(-86px) scale(0.22); opacity: 1; }
+  100% { transform: translateY(-105px) scale(0.06); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
