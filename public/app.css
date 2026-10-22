@@ -134,13 +134,21 @@ body {
 .danfo .win { fill: #18202f; }
 .danfo .stripe { fill: #111; }
 .danfo .pax { fill: #4a3328; opacity: 0; transform: translateY(8px); transition: opacity 0.35s, transform 0.4s cubic-bezier(.3, 1.6, .5, 1); }
-.danfo .tail { fill: #5e1a16; transition: fill 0.3s; }
-.danfo .glow { fill: url(#glow); opacity: 0; transition: opacity 0.3s; }
+.danfo .tail { fill: #8a1f18; animation: tailpulse 1.8s ease-in-out infinite; }
+.danfo .glow { fill: url(#glow); animation: glowpulse 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .danfo .plate-bg { fill: #f4efe2; }
 .danfo .plate { font: 900 7px/1 var(--display); letter-spacing: 0.08em; fill: #111; text-anchor: middle; }
 .danfo .bumper { fill: #1a1d24; }
 .danfo .conductor { stroke: #4a3328; stroke-width: 3; stroke-linecap: round; fill: #4a3328; opacity: 0; transform: translateX(10px); transition: opacity 0.3s, transform 0.4s; }
-.danfo .smoke circle { fill: rgba(200, 210, 230, 0.28); opacity: 0; }
+.danfo .exhaust { fill: #3a3f4a; stroke: #1a1d24; stroke-width: 1; }
+/* Smoke never stops: the engine is always running. Fuller bus, more smoke. */
+.danfo .smoke circle { fill: rgba(205, 212, 228, 0.32); transform-box: fill-box; transform-origin: center; animation: puff var(--puff, 1.6s) ease-out infinite; }
+.danfo .smoke circle:nth-child(2) { animation-delay: calc(var(--puff, 1.6s) * -0.25); }
+.danfo .smoke circle:nth-child(3) { animation-delay: calc(var(--puff, 1.6s) * -0.5); }
+.danfo .smoke circle:nth-child(4) { animation-delay: calc(var(--puff, 1.6s) * -0.75); }
+.scene[data-level="1"] { --puff: 1.3s; }
+.scene[data-level="2"] { --puff: 1s; }
+.scene[data-level="3"] { --puff: 0.7s; }
 
 /* Each correct detail, more passengers climb in. */
 .scene[data-level="1"] .p1,
@@ -148,28 +156,28 @@ body {
 .scene[data-level="3"] .pax { opacity: 1; transform: none; }
 .scene[data-level="3"] .conductor { opacity: 1; transform: none; }
 .scene:not([data-level="0"]) .tail { fill: #ff3b30; }
-.scene:not([data-level="0"]) .glow { opacity: 1; }
+.scene.brake .tail { fill: #ff6b5e !important; animation: none; }
+.scene.brake .glow { opacity: 1 !important; transform: scale(1.5); animation: none; }
 .scene[data-level="3"] :is(.bridge-lights circle, .lamps circle) { fill: var(--gold); }
 
 /* Engine running: the bus rocks, faster the fuller it gets. */
 .scene:not([data-level="0"]) .body-bob { animation: idle var(--idle, 0.5s) ease-in-out infinite; }
 .scene[data-level="2"] { --idle: 0.35s; }
 .scene[data-level="3"] { --idle: 0.22s; }
-.scene[data-level="3"] .smoke circle { animation: puff 0.9s ease-out infinite; }
-.scene[data-level="3"] .smoke circle:nth-child(2) { animation-delay: 0.3s; }
-.scene[data-level="3"] .smoke circle:nth-child(3) { animation-delay: 0.6s; }
 
 /* Wrong detail: the bus jolts. */
 .scene.wobble .body-bob { animation: jolt 0.4s ease-in-out; }
 
 /* Outside: it pulls away up the road, shrinking towards the bridge until it's gone. */
 .scene.drive .danfo { animation: drive 2.6s cubic-bezier(.5, 0, .75, 1) forwards; }
-.scene.drive .smoke circle { animation: puff 0.45s ease-out infinite; }
+.scene.drive { --puff: 0.45s; }
 .scene.drive .lane { animation: lane 0.5s linear infinite; }
 
 @keyframes idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
 @keyframes jolt { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-5px) rotate(-1.5deg); } 65% { transform: translateX(4px); } }
-@keyframes puff { 0% { opacity: 0.6; transform: translate(0, 0) scale(0.6); } 100% { opacity: 0; transform: translate(-14px, -10px) scale(1.5); } }
+@keyframes puff { 0% { opacity: 0; transform: translate(0, 0) scale(0.5); } 15% { opacity: 0.75; } 100% { opacity: 0; transform: translate(-26px, -16px) scale(2.6); } }
+@keyframes tailpulse { 0%, 100% { filter: brightness(0.85); } 50% { filter: brightness(1.25); } }
+@keyframes glowpulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
 @keyframes lane { to { stroke-dashoffset: -22; } }
 @keyframes drive {
   0% { transform: none; opacity: 1; }
