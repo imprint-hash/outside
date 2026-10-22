@@ -106,6 +106,15 @@ export async function findEntity(query, type, { city } = {}) {
   return best;
 }
 
+/**
+ * Tidy a name Qloo stores with stray capitals: "TEms" -> "Tems". Only the
+ * two-capitals-then-lowercase pattern is touched, so "SZA", "AY Makun" and
+ * "McDonald's" stay as they are.
+ */
+export function prettyName(name) {
+  return String(name || "").replace(/\b([A-Z])([A-Z])([a-z]{2,})\b/g, (_, a, b, rest) => a + b.toLowerCase() + rest);
+}
+
 /** Search several matches for a name, for pickers in the UI. */
 export async function searchEntities(query, type, take = 6) {
   const r = await qloo("/search", { query, types: type, take });

@@ -189,3 +189,59 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .scene *, .scene { animation: none !important; transition: none !important; }
 }
+
+/* ---------- setup (avatar, taste, stay) ---------- */
+
+.onboard { max-width: 460px; margin: 0 auto; padding: 18px 16px 48px; display: flex; flex-direction: column; gap: 14px; }
+.onboard-top { display: flex; justify-content: space-between; align-items: center; }
+.brand { display: flex; align-items: center; gap: 8px; }
+.steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.steps li { font: 800 12px/1 var(--body); color: var(--faint); padding: 6px 10px; border-radius: 99px; border: 1px solid var(--line); }
+.steps li.on { color: var(--ink); border-color: rgba(255, 94, 77, 0.6); background: rgba(255, 94, 77, 0.12); }
+.step { display: flex; flex-direction: column; gap: 14px; }
+.step-title { margin: 6px 0 0; font: 900 28px/1.15 var(--display); letter-spacing: -0.01em; text-wrap: balance; }
+.step-sub { margin: -6px 0 0; color: var(--muted); font-weight: 700; }
+
+/* The character creator: the avatar sways on a glowing floor tile, plumbob above. */
+.cas { position: relative; display: grid; place-items: center; padding: 10px 0 0; }
+.cas-stage { position: relative; display: grid; place-items: center; perspective: 600px; }
+.cas-preview { animation: sway 5s ease-in-out infinite; transform-style: preserve-3d; position: relative; z-index: 1; }
+.cas-floor { width: 170px; height: 40px; margin-top: -26px; border-radius: 50%; background: radial-gradient(closest-side, rgba(46, 230, 107, 0.35), rgba(46, 230, 107, 0) 70%); filter: blur(1px); }
+.dice { position: absolute; right: 8px; top: 18px; width: 48px; height: 48px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--raised); font-size: 24px; cursor: pointer; }
+.dice.roll { animation: roll 0.6s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes sway { 0%, 100% { transform: rotateY(-14deg); } 50% { transform: rotateY(14deg); } }
+@keyframes roll { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(200deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+
+/* The plumbob: spins and bobs over an avatar's head. */
+.avatar .plumbob { transform-box: fill-box; transform-origin: center; animation: plumbob 3s ease-in-out infinite; filter: drop-shadow(0 0 6px currentColor); }
+@keyframes plumbob { 0% { transform: translateY(0) scaleX(1); } 25% { transform: translateY(-3px) scaleX(0.35); } 50% { transform: translateY(0) scaleX(-1); } 75% { transform: translateY(-3px) scaleX(-0.35); } 100% { transform: translateY(0) scaleX(1); } }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.tab { flex: none; font: 800 13px/1 var(--body); color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 9px 14px; cursor: pointer; }
+.tab.on { color: var(--ink); border-color: var(--coral); background: rgba(255, 94, 77, 0.12); }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; min-height: 52px; }
+.swatch { width: 40px; height: 40px; border-radius: 50%; background: var(--c); border: 3px solid transparent; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); cursor: pointer; }
+.swatch.on { border-color: var(--coral); }
+.choice { font: 800 14px/1 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; cursor: pointer; }
+.choice.on { border-color: var(--emerald); color: var(--emerald); background: rgba(0, 210, 133, 0.08); }
+.swatch:focus-visible, .choice:focus-visible, .tab:focus-visible, .dice:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.picker { position: relative; }
+.suggest { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.suggest:empty { display: none; }
+.suggest li.muted { color: var(--muted); font-weight: 700; padding: 8px 4px; }
+.suggest button { width: 100%; display: flex; gap: 10px; align-items: center; text-align: left; background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; cursor: pointer; font: 700 14px/1.3 var(--body); }
+.suggest button:hover, .suggest button:focus-visible { border-color: var(--coral); outline: none; }
+.suggest img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex: none; }
+.suggest small { display: block; color: var(--muted); font-weight: 600; font-size: 12px; }
+.chosen { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-on { font: 800 13px/1 var(--body); color: var(--emerald); background: rgba(0, 210, 133, 0.08); border: 1px solid rgba(0, 210, 133, 0.5); border-radius: 99px; padding: 8px 12px; cursor: pointer; }
+.hint { margin: 0; color: var(--muted); font-weight: 700; font-size: 13px; }
+.btn-ghost { appearance: none; border: 1px solid var(--line-strong); background: var(--raised); color: var(--ink); font: 900 16px/1 var(--display); border-radius: 14px; padding: 15px; cursor: pointer; }
+.btn-ghost:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.or { margin: -4px 0; text-align: center; color: var(--faint); font-weight: 800; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cas-preview, .avatar .plumbob, .dice.roll { animation: none !important; }
+}
+.step[hidden], .suggest[hidden] { display: none; }

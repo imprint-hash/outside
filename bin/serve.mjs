@@ -12,7 +12,9 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": 
 createServer(async (req, res) => {
   if (req.url.startsWith("/api/")) return handle(req, res);
   const path = decodeURIComponent(new URL(req.url, "http://local").pathname);
-  const file = normalize(join(PUBLIC, path.endsWith("/") ? `${path}index.html` : path));
+  // Clean URLs: /taste serves taste.html.
+  const clean = !extname(path) && path !== "/" ? `${path}.html` : path;
+  const file = normalize(join(PUBLIC, clean.endsWith("/") ? `${clean}index.html` : clean));
   if (!file.startsWith(PUBLIC)) return res.writeHead(403).end();
   try {
     const body = await readFile(file);

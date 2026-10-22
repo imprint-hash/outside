@@ -70,3 +70,21 @@ test("matching: identical tastes score 100, nothing shared scores 0, it's symmet
   const c = { ...b, music: ["afrobeats", "metal"] };
   assert.equal(compareProfiles(a, c).match, compareProfiles(c, a).match);
 });
+
+import { cleanAvatar, DEFAULT_AVATAR } from "../src/avatar.js";
+test("avatars: only listed options are accepted; missing ones fall back to the default", () => {
+  assert.deepEqual(cleanAvatar({}), { ...DEFAULT_AVATAR, extras: [] });
+  assert.deepEqual(cleanAvatar({ hair: "locs", extras: ["glasses", "glasses", "cap"] }).extras, ["cap", "glasses"]);
+  assert.throws(() => cleanAvatar({ hair: "<script>" }), /isn't one of the options/);
+  assert.throws(() => cleanAvatar({ skin: "#000000" }), /isn't one of the options/);
+  assert.throws(() => cleanAvatar({ extras: ["https://evil.example"] }), /Unknown extra/);
+});
+
+import { prettyName } from "../src/qloo.js";
+test("names with stray capitals are tidied, real ones are left alone", () => {
+  assert.equal(prettyName("TEms"), "Tems");
+  assert.equal(prettyName("SZA"), "SZA");
+  assert.equal(prettyName("AY Makun"), "AY Makun");
+  assert.equal(prettyName("McDonald's"), "McDonald's");
+  assert.equal(prettyName("Burna Boy"), "Burna Boy");
+});

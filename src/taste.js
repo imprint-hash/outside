@@ -12,7 +12,7 @@
  * locations, in line with Qloo's safe-use rules.
  */
 
-import { qloo, insights, findEntity, QlooError } from "./qloo.js";
+import { qloo, insights, findEntity, QlooError, prettyName } from "./qloo.js";
 
 export const TYPES = {
   artist: "urn:entity:artist",
@@ -44,7 +44,7 @@ export async function resolveFavourites(items, { city } = {}) {
     if (!type || !String(it.name || "").trim()) continue;
     const e = await findEntity(it.name, type, { city: it.city || (type === TYPES.place ? undefined : undefined) });
     // Keep the person's own spelling when Qloo's differs only in case ("TEms").
-    const name = e && e.name.toLowerCase() === String(it.name).trim().toLowerCase() ? String(it.name).trim() : e?.name;
+    const name = e && e.name.toLowerCase() === String(it.name).trim().toLowerCase() ? prettyName(String(it.name).trim()) : prettyName(e?.name);
     if (e) found.push({ id: e.entity_id, name, type: it.type, image: e.properties?.image?.url || null });
     else missing.push(it.name);
   }

@@ -10,6 +10,7 @@
 import "./env.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { get, put, list } from "./store.js";
+import { DEFAULT_AVATAR } from "./avatar.js";
 
 export class AuthError extends Error {
   constructor(message, status = 401) {
@@ -61,6 +62,7 @@ export async function signUp({ email, firstName, homeCity }) {
     homeCity: String(homeCity || "").trim().slice(0, 40) || null,
     verified: false,
     favourites: [],
+    avatar: null,
     visibility: "everyone",
     createdAt: new Date().toISOString(),
   });
@@ -68,4 +70,7 @@ export async function signUp({ email, firstName, homeCity }) {
 }
 
 /** What a person may see about themselves. Never the hash of anything secret. */
-export const selfView = (u) => ({ id: u.id, email: u.email, firstName: u.firstName, homeCity: u.homeCity, verified: u.verified, favourites: u.favourites, visibility: u.visibility });
+export const selfView = (u) => ({ id: u.id, email: u.email, firstName: u.firstName, homeCity: u.homeCity, verified: u.verified, favourites: u.favourites, visibility: u.visibility, avatar: u.avatar || null });
+
+/** Someone else's avatar: theirs if they made one, the default if not. */
+export const avatarOf = (u) => u?.avatar || DEFAULT_AVATAR;

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cut">
+<meta name="theme-color" content="#0a0c10">
+<title>Outside · Set up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<main class="onboard">
+  <header class="onboard-top">
+    <span class="brand"><span class="brand-dot" aria-hidden="true"></span><span class="brand-name">Outside</span></span>
+    <ol class="steps" aria-label="Setup steps">
+      <li data-step="1" class="on">You</li><li data-step="2">Taste</li><li data-step="3">Stay</li>
+    </ol>
+  </header>
+
+  <!-- Step 1: create your avatar -->
+  <section class="step" id="step1" aria-labelledby="h1">
+    <h1 id="h1" class="step-title">Create your Outsider</h1>
+    <p class="step-sub">This is what people see instead of your photo, until you choose to meet.</p>
+    <div class="cas">
+      <div class="cas-stage"><div id="preview" class="cas-preview"></div><div class="cas-floor" aria-hidden="true"></div></div>
+      <button id="dice" class="dice" type="button" aria-label="Surprise me">🎲</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" class="tab on" data-tab="skin" aria-selected="true">Skin</button>
+      <button role="tab" class="tab" data-tab="hair" aria-selected="false">Hair</button>
+      <button role="tab" class="tab" data-tab="hairColour" aria-selected="false">Hair colour</button>
+      <button role="tab" class="tab" data-tab="outfit" aria-selected="false">Outfit</button>
+      <button role="tab" class="tab" data-tab="extras" aria-selected="false">Extras</button>
+    </div>
+    <div id="choices" class="choices" role="tabpanel"></div>
+    <button id="saveAvatar" class="btn-primary" type="button">That's me</button>
+    <p id="err1" class="error" role="alert" hidden></p>
+  </section>
+
+  <!-- Step 2: what you love back home -->
+  <section class="step" id="step2" hidden aria-labelledby="h2">
+    <h1 id="h2" class="step-title">What do you love back home?</h1>
+    <p class="step-sub">A few artists and places, from any city. Qloo turns them into your taste in Lagos.</p>
+    <div class="picker" data-type="artist">
+      <label class="field"><span>Artists</span><input id="q-artist" placeholder="Search, e.g. Tems" autocomplete="off"></label>
+      <ul class="suggest" id="s-artist" role="listbox"></ul>
+    </div>
+    <div class="picker" data-type="place">
+      <label class="field"><span>Places you love, anywhere</span><input id="q-place" placeholder="Search, e.g. Nobu" autocomplete="off"></label>
+      <ul class="suggest" id="s-place" role="listbox"></ul>
+    </div>
+    <div class="picker" data-type="show">
+      <label class="field"><span>Shows or films (optional)</span><input id="q-show" placeholder="Search, e.g. Insecure" autocomplete="off"></label>
+      <ul class="suggest" id="s-show" role="listbox"></ul>
+    </div>
+    <div id="chosen" class="chosen" aria-live="polite"></div>
+    <p class="hint" id="tasteHint">Pick at least 2 to continue.</p>
+    <button id="saveTaste" class="btn-primary" type="button" disabled>Next: where are you staying?</button>
+    <p id="err2" class="error" role="alert" hidden></p>
+  </section>
+
+  <!-- Step 3: where you're staying -->
+  <section class="step" id="step3" hidden aria-labelledby="h3">
+    <h1 id="h3" class="step-title">Where are you staying?</h1>
+    <p class="step-sub">A hotel, an area, or your location. We use it to find places near you.</p>
+    <button id="useGps" class="btn-ghost" type="button">📍 Use my location</button>
+    <p class="or">or</p>
+    <label class="field"><span>Hotel or area</span><input id="stay" placeholder="Eko Hotel, Lekki Phase 1, Ikoyi…" list="areas" autocomplete="off"></label>
+    <datalist id="areas"><option value="Victoria Island"><option value="Ikoyi"><option value="Lekki Phase 1"><option value="Oniru"><option value="Lagos Island"><option value="Ikeja GRA"><option value="Yaba"><option value="Surulere"></datalist>
+    <p id="gpsNote" class="hint" hidden></p>
+    <button id="saveStay" class="btn-primary" type="button" disabled>Show me tonight</button>
+    <p id="err3" class="error" role="alert" hidden></p>
+  </section>
+</main>
+<script type="module" src="/taste.js"></script>
+</body>
+</html>

@@ -19,6 +19,8 @@ import { get, put, list } from "./store.js";
 import { buildProfile, compareProfiles, matchLine, resolveFavourites } from "./taste.js";
 import { entityById, shortName } from "./places.js";
 import { distanceM, localClock } from "./geo.js";
+import { cleanAvatar } from "./avatar.js";
+import { avatarOf } from "./auth.js";
 import { zoneFor } from "./hours.js";
 
 export class RuleError extends Error {
@@ -42,6 +44,10 @@ export async function setTaste(user, items) {
   if (!favourites.length) throw new RuleError(missing.length ? `Couldn't find ${missing.join(", ")}. Check the spelling?` : "Add at least one thing you love.", 400);
   const saved = await put("users", { ...user, favourites, updatedAt: new Date().toISOString() });
   return { user: saved, missing };
+}
+
+export async function setAvatar(user, avatar) {
+  return put("users", { ...user, avatar: cleanAvatar(avatar) });
 }
 
 export async function setVisibility(user, visibility) {
@@ -149,7 +155,7 @@ export async function whoIsHere(viewer, now = new Date()) {
     const cmp = myProfile && theirs ? compareProfiles(myProfile, theirs, { namesA: viewer.favourites.map((f) => f.name), namesB: u.favourites.map((f) => f.name) }) : { match: null, because: { bothLove: [], music: [], places: [], wouldGoTo: [] } };
     if (u.visibility === "groups" && (cmp.match ?? 0) >= 50) groupMinded++;
     if (!allowedToSee(viewer, u, cmp.match ?? 0)) continue;
-    people.push({ userId: u.id, firstName: u.firstName, match: cmp.match, line: cmp.match == null ? "Hasn't added their taste yet" : matchLine(cmp), verified: u.verified });
+    people.push({ userId: u.id, firstName: u.firstName, avatar: avatarOf(u), bubbles: [...cmp.because.bothLove, ...cmp.because.music].slice(0, 3), match: cmp.match, line: cmp.match == null ? "Hasn't added their taste yet" : matchLine(cmp), verified: u.verified });
   }
   people.sort((a, b) => (b.match ?? -1) - (a.match ?? -1));
   return { venue: mine.venueName, people, groupMinded };
@@ -173,7 +179,10 @@ export async function sayHi(user, toId, now = new Date()) {
 /** Hellos waiting for you: their first name, the match, and why. Nothing more. */
 export async function inbox(user) {
   const hs = await list("hellos", (h) => h.to === user.id && h.status === "pending", { to: user.id, status: "pending" });
-  return Promise.all(hs.map(async (h) => ({ helloId: h.id, firstName: (await get("users", h.from))?.firstName, match: h.match, line: h.line, venue: h.venueName, at: h.at })));
+  return Promise.all(hs.map(async (h) => {
+    const from = await get("users", h.from);
+    return { helloId: h.id, firstName: from?.firstName, avatar: avatarOf(from), match: h.match, line: h.line, venue: h.venueName, at: h.at };
+  }));
 }
 
 export async function answerHi(user, helloId, accept, now = new Date()) {

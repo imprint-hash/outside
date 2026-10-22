@@ -4,7 +4,7 @@
  * message and the right status; nothing answers an HTML error page.
  */
 
-import { QlooError, searchEntities, stats } from "./qloo.js";
+import { QlooError, searchEntities, stats, prettyName } from "./qloo.js";
 import { AuthError, signUp, userFromToken, selfView } from "./auth.js";
 import { resolveOrigin, nearYou, translateCity, tonight, CATEGORIES } from "./places.js";
 import { eventsForYou, afterTheShow, seededEvents } from "./events.js";
@@ -13,6 +13,7 @@ import * as people from "./people.js";
 import { dashboard } from "./organiser.js";
 import { get, put, list, storeName, StoreError } from "./store.js";
 import { TYPES } from "./taste.js";
+import { AVATAR_OPTIONS, DEFAULT_AVATAR, AvatarError } from "./avatar.js";
 
 class HttpError extends Error {
   constructor(message, status = 400) {
@@ -82,6 +83,8 @@ const routes = [
     const { user: saved, missing } = await people.setTaste(user, body.items);
     return { user: selfView(saved), missing };
   }],
+  ["POST", "/api/me/avatar", async ({ user, body }) => ({ user: selfView(await people.setAvatar(user, body.avatar)) })],
+  ["GET", "/api/avatar-options", async () => ({ options: AVATAR_OPTIONS, default: DEFAULT_AVATAR })],
   ["POST", "/api/me/visibility", async ({ user, body }) => ({ user: selfView(await people.setVisibility(user, body.visibility)) })],
 
   ["GET", "/api/search", async ({ query }) => {
@@ -89,7 +92,13 @@ const routes = [
     const type = TYPES[query.get("type")] || TYPES.artist;
     if (q.length < 2) return { results: [] };
     const found = await searchEntities(q, type, 6);
-    return { results: found.map((e) => ({ id: e.entity_id, name: e.name, detail: e.properties?.address || e.disambiguation || e.properties?.short_description || null, image: e.properties?.image?.url || null })) };
+    return {
+      results: found.map((e) => {
+        const name = prettyName(e.name);
+        const detail = e.properties?.address || e.properties?.short_description || e.disambiguation || null;
+        return { id: e.entity_id, name, detail: detail && detail.toLowerCase() !== e.name.toLowerCase() ? detail : null, image: e.properties?.image?.url || null };
+      }),
+    };
   }],
 
   ["POST", "/api/places/near", async ({ user, body }) => {
@@ -160,7 +169,7 @@ const routes = [
   }],
 ];
 
-const PUBLIC = new Set(["/api/health", "/api/auth/signup", "/api/search", "/api/admin/refresh-events"]);
+const PUBLIC = new Set(["/api/health", "/api/auth/signup", "/api/search", "/api/admin/refresh-events", "/api/avatar-options"]);
 
 function match(method, path) {
   for (const [m, pattern, fn] of routes) {
@@ -191,7 +200,7 @@ export async function handle(req, res) {
     }
     return send(200, await hit.fn({ req, body, user, params: hit.params, query: url.searchParams }));
   } catch (err) {
-    const known = err instanceof HttpError || err instanceof QlooError || err instanceof AuthError || err instanceof people.RuleError || err instanceof StoreError;
+    const known = err instanceof HttpError || err instanceof QlooError || err instanceof AuthError || err instanceof people.RuleError || err instanceof StoreError || err instanceof AvatarError;
     if (!known) console.error(err);
     return send(known ? err.status || 400 : 500, { error: known ? err.message : "Something went wrong on our side. Please try again." });
   }
