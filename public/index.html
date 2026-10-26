@@ -2,119 +2,103 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cut">
-<meta name="theme-color" content="#0a0c10">
-<title>Outside</title>
-<meta name="description" content="Your kind of places, events and people, wherever you land. Built on Qloo's taste graph.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070910">
+<title>Outside · Step outside</title>
+<meta name="description" content="Outside connects people by taste. Land anywhere, and see where your people are tonight. Built on Qloo's taste graph.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
 <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-<main class="signup">
-  <header class="brand">
-    <span class="brand-dot" aria-hidden="true"></span>
-    <span class="brand-name">Outside</span>
-  </header>
-
-  <section class="stage" aria-hidden="true">
-    <svg id="scene" class="scene" viewBox="0 0 400 220" data-level="0">
+<main class="door-page">
+  <section class="street" id="street" data-level="0" aria-hidden="true">
+    <svg viewBox="0 0 400 520" preserveAspectRatio="xMidYMax meet" overflow="visible">
       <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#241a2e"/></linearGradient>
-        <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16203a"/><stop offset="1" stop-color="#0a0c10"/></linearGradient>
-        <linearGradient id="tarmac" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c2232"/><stop offset="1" stop-color="#2a3142"/></linearGradient>
-        <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ff3b30" stop-opacity="0.7"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05060c"/><stop offset=".7" stop-color="#11131b"/><stop offset="1" stop-color="#1b1830"/></linearGradient>
+        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d1f28"/><stop offset="1" stop-color="#15161e"/></linearGradient>
+        <radialGradient id="lampLight" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffb86b" stop-opacity=".45"/><stop offset="1" stop-color="#ffb86b" stop-opacity="0"/></radialGradient>
+        <radialGradient id="doorSpill" cx=".5" cy="0" r=".9"><stop offset="0" stop-color="#ffd9a8" stop-opacity=".75"/><stop offset="1" stop-color="#ffb86b" stop-opacity="0"/></radialGradient>
+        <filter id="winGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="neon" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
-      <rect width="400" height="220" fill="url(#sky)"/>
-      <g class="stars"><circle cx="40" cy="22" r="1.2"/><circle cx="92" cy="40" r="1"/><circle cx="150" cy="16" r="1.3"/><circle cx="330" cy="30" r="1"/><circle cx="372" cy="14" r="1.2"/><circle cx="210" cy="26" r="0.9"/></g>
+      <rect x="-800" y="-400" width="2000" height="920" fill="url(#sky)"/>
+      <g class="stars"><circle cx="30" cy="40" r="1.1"/><circle cx="90" cy="80" r=".9"/><circle cx="150" cy="30" r="1.2"/><circle cx="250" cy="55" r="1"/><circle cx="330" cy="28" r="1.2"/><circle cx="372" cy="90" r=".9"/><circle cx="200" cy="100" r=".8"/><circle cx="60" cy="140" r=".8"/></g>
+      <circle cx="330" cy="80" r="16" fill="#e2e1ee" opacity=".85"/><circle cx="337" cy="75" r="15" fill="#0a0b13"/>
+      <!-- the city behind -->
+      <path d="M-800 250 H0 h30 v-50 h24 v30 h20 v-70 h26 v90 h18 v-40 h30 v60 h0 V520 H-800Z" fill="#0f1119"/>
+      <path d="M270 250 v-60 h26 v-30 h22 v50 h20 v-80 h28 v70 h34 h800 V520 H270Z" fill="#0f1119"/>
+      <g fill="#ffb86b" opacity=".35"><rect x="80" y="190" width="4" height="5"/><rect x="88" y="205" width="4" height="5"/><rect x="300" y="200" width="4" height="5"/><rect x="345" y="160" width="4" height="5"/><rect x="352" y="182" width="4" height="5"/><rect x="40" y="215" width="4" height="5"/></g>
 
-      <!-- The Lekki–Ikoyi Link Bridge on the horizon: one tower, fanned cables -->
-      <g class="bridge">
-        <path class="tower" d="M253 100 L257 36 L261 100"/>
-        <g class="cables">
-          <path d="M257 42 L150 98"/><path d="M257 50 L178 98"/><path d="M257 58 L206 98"/><path d="M257 66 L230 98"/>
-          <path d="M257 42 L362 98"/><path d="M257 50 L336 98"/><path d="M257 58 L308 98"/><path d="M257 66 L284 98"/>
+      <!-- the house with the front door -->
+      <g class="facade">
+        <rect x="90" y="150" width="220" height="300" fill="url(#wall)"/>
+        <path d="M80 152 L200 96 L320 152Z" fill="#191b24"/>
+        <rect x="90" y="150" width="220" height="4" fill="#282a32"/>
+        <g class="win" data-w="0"><rect x="118" y="182" width="52" height="62" rx="3"/><rect class="shade" x="118" y="182" width="52" height="10" rx="3" fill="#15161e"/><rect class="sill" x="114" y="244" width="60" height="4"/></g>
+        <g class="win" data-w="1"><rect x="230" y="182" width="52" height="62" rx="3"/><rect class="shade" x="230" y="182" width="52" height="10" rx="3" fill="#15161e"/><rect class="sill" x="226" y="244" width="60" height="4"/></g>
+        <g class="win" data-w="2"><rect x="118" y="290" width="40" height="54" rx="3"/><rect class="sill" x="114" y="344" width="48" height="4"/></g>
+        <g class="win" data-w="3"><rect x="242" y="290" width="40" height="54" rx="3"/><rect class="sill" x="238" y="344" width="48" height="4"/></g>
+        <!-- neon sign over the door -->
+        <text class="neon-text" x="200" y="285" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="15" letter-spacing="3" fill="#00ffa3">OUTSIDE</text>
+        <rect class="neon" x="160" y="268" width="80" height="24" rx="6"/>
+        <!-- door -->
+        <rect x="168" y="304" width="64" height="146" fill="#0c0e16"/>
+        <rect class="door-glow door-light" x="172" y="308" width="56" height="142"/>
+        <g class="walker" id="walker"></g>
+        <g class="door-panel">
+          <rect x="172" y="308" width="56" height="142" fill="#33343e"/>
+          <rect x="178" y="316" width="44" height="54" rx="2" fill="none" stroke="#282a32" stroke-width="3"/>
+          <rect x="178" y="380" width="44" height="60" rx="2" fill="none" stroke="#282a32" stroke-width="3"/>
+          <circle cx="220" cy="382" r="3" fill="#ffb86b"/>
         </g>
-        <path class="deck" d="M110 99 L400 97"/>
-        <g class="bridge-lights"><circle cx="150" cy="98.5" r="1.4"/><circle cx="206" cy="98" r="1.4"/><circle cx="308" cy="97.6" r="1.4"/><circle cx="362" cy="97.3" r="1.4"/><circle cx="257" cy="36" r="2"/></g>
-        <text class="sign" x="296" y="88">IKOYI LINK</text>
+        <rect x="160" y="450" width="80" height="8" fill="#282a32"/>
+        <rect x="152" y="458" width="96" height="8" fill="#1d1f28"/>
       </g>
-
-      <rect y="100" width="400" height="120" fill="url(#water)"/>
-      <g class="glints"><path d="M30 130h30M60 170h22M330 140h34M320 186h26M18 200h20M368 206h18"/></g>
-
-      <!-- The road, running away from us to the bridge -->
-      <path class="road" d="M196 100 L204 100 L330 220 L70 220 Z" fill="url(#tarmac)"/>
-      <path class="kerb" d="M196 100 L70 220 M204 100 L330 220"/>
-      <path class="lane" d="M200 102 L200 220"/>
-
-      <!-- Street lights along both sides, shrinking with distance -->
-      <g class="lamps">
-        <path d="M86 205 V160 h8"/><circle cx="96" cy="160" r="2.6"/>
-        <path d="M124 166 V136 h6"/><circle cx="131" cy="136" r="2"/>
-        <path d="M156 132 V116 h4"/><circle cx="161" cy="116" r="1.4"/>
-        <path d="M314 205 V160 h-8"/><circle cx="304" cy="160" r="2.6"/>
-        <path d="M276 166 V136 h-6"/><circle cx="269" cy="136" r="2"/>
-        <path d="M244 132 V116 h-4"/><circle cx="239" cy="116" r="1.4"/>
-      </g>
-
-      <!-- The danfo, from behind -->
-      <g id="danfo" class="danfo">
-        <g class="body-bob">
-          <ellipse class="shadow" cx="200" cy="208" rx="58" ry="5"/>
-          <rect class="wheel" x="155" y="190" width="18" height="18" rx="4"/>
-          <rect class="wheel" x="227" y="190" width="18" height="18" rx="4"/>
-          <rect class="roof" x="160" y="104" width="80" height="5" rx="2"/>
-          <rect class="bus" x="150" y="108" width="100" height="88" rx="10"/>
-          <rect class="win" x="160" y="116" width="80" height="34" rx="5"/>
-          <g class="pax p1"><circle cx="173" cy="134" r="5"/><path d="M164 150 a9 7 0 0 1 18 0z"/></g>
-          <g class="pax p2"><circle cx="192" cy="133" r="5"/><path d="M183 150 a9 7 0 0 1 18 0z"/></g>
-          <g class="pax p3"><circle cx="210" cy="134" r="5"/><path d="M201 150 a9 7 0 0 1 18 0z"/></g>
-          <g class="pax p4"><circle cx="228" cy="133" r="5"/><path d="M219 150 a9 7 0 0 1 18 0z"/></g>
-          <rect class="stripe" x="150" y="156" width="100" height="6"/>
-          <rect class="stripe" x="150" y="166" width="100" height="3"/>
-          <circle class="glow g1" cx="161" cy="180" r="14"/>
-          <circle class="glow g2" cx="239" cy="180" r="14"/>
-          <rect class="tail" x="155" y="173" width="12" height="14" rx="2"/>
-          <rect class="tail" x="233" y="173" width="12" height="14" rx="2"/>
-          <rect class="plate-bg" x="182" y="176" width="36" height="11" rx="2"/>
-          <text class="plate" x="200" y="184">OUTSIDE</text>
-          <rect class="bumper" x="146" y="190" width="108" height="6" rx="3"/>
-          <rect class="exhaust" x="160" y="194" width="9" height="5" rx="2"/>
-          <!-- the conductor hanging off the side door -->
-          <g class="conductor"><circle cx="259" cy="122" r="5"/><path d="M259 127 v20 M259 133 l-9 -6 M259 147 l-5 12 M259 147 l6 12"/></g>
-        </g>
-        <g class="smoke"><circle cx="160" cy="198" r="4"/><circle cx="160" cy="198" r="4"/><circle cx="160" cy="198" r="4"/><circle cx="160" cy="198" r="4"/></g>
-      </g>
+      <!-- the street -->
+      <path class="door-glow" d="M168 466 L232 466 L300 520 L100 520Z" fill="url(#doorSpill)"/>
+      <rect x="-800" y="466" width="2000" height="400" fill="#0c0e16"/>
+      <path d="M-800 492 H1200" stroke="#33343e" stroke-width="2" stroke-dasharray="18 14"/>
+      <!-- street lamp -->
+      <path d="M48 466 V300 q0 -14 14 -14 h14" stroke="#33343e" stroke-width="4" fill="none"/>
+      <path d="M70 290 h18 l-4 8 h-10Z" fill="#33343e"/>
+      <path class="lamp-light" d="M72 298 L120 466 L20 466Z" fill="url(#lampLight)"/>
+      <circle cx="79" cy="298" r="3" fill="#ffd9a8"/>
     </svg>
   </section>
 
-  <form id="form" class="card" novalidate>
-    <h1>Hop on the danfo</h1>
-    <p class="sub">Three quick things and the bus leaves. Next stop: <em>outside</em>.</p>
+  <form id="form" class="door-form" novalidate>
+    <div class="top">
+      <span class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="#00ffa3" stroke-width="1.8"/><rect x="8.5" y="6" width="7" height="12" rx="1" fill="#00ffa3" opacity=".25"/><circle cx="14" cy="12.5" r="1.1" fill="#00ffa3"/></svg></span><span class="brand-text"><span class="brand-name">Outside</span><span class="brand-by">Powered by Qloo</span></span></span>
+      <a href="/venue">For venues</a>
+    </div>
+    <h1 id="title">Step <em>outside</em></h1>
+    <p class="lede" id="lede">Land anywhere, and see where your people are tonight: places, events and people who share your taste.</p>
 
-    <label class="field">
+    <label class="field" data-for="signup">
       <span>First name</span>
-      <input id="firstName" name="firstName" autocomplete="given-name" maxlength="30" placeholder="Tolu" required>
+      <input id="firstName" name="firstName" autocomplete="given-name" maxlength="30" placeholder="Tolu">
     </label>
     <label class="field">
       <span>Email</span>
-      <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@email.com" required>
+      <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@email.com">
     </label>
     <label class="field">
+      <span>Password</span>
+      <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+    </label>
+    <label class="field" data-for="signup">
       <span>Where's home?</span>
-      <input id="homeCity" name="homeCity" autocomplete="address-level2" maxlength="40" placeholder="Houston, London, Atlanta…" list="cities" required>
-      <datalist id="cities">
-        <option value="Houston"><option value="Atlanta"><option value="New York"><option value="London"><option value="Toronto"><option value="Dallas"><option value="Washington DC"><option value="Manchester"><option value="Lagos">
-      </datalist>
+      <input id="homeCity" name="homeCity" autocomplete="address-level2" maxlength="40" placeholder="Lagos, Houston, Manchester…">
     </label>
 
-    <p id="caption" class="caption" aria-live="polite">The bus is waiting for passengers…</p>
-
-    <button id="go" class="btn-primary" type="submit" disabled>Outside</button>
+    <p id="caption" class="caption" aria-live="polite"></p>
+    <button id="go" class="btn btn-mint" type="submit" disabled>Outside</button>
     <p id="error" class="error" role="alert" hidden></p>
-    <p class="fine">We only show your first name to people you choose. Never your email.</p>
+    <button id="switch" class="btn btn-ghost" type="button">I already have an account</button>
+    <p class="fine">People only ever see your first name, and only when you choose. Never your email.</p>
   </form>
 </main>
 <script type="module" src="/signup.js"></script>

@@ -1,5 +1,5 @@
-// Setup in three steps: create your avatar, say what you love back home,
-// then where you're staying (or use your location).
+// Setup in three steps: create your avatar, say what you love, then your
+// city and where you're staying (or use your location).
 import { api, needSignIn, esc } from "/api.js";
 import { avatarSVG } from "/avatar.js";
 
@@ -8,6 +8,8 @@ const $ = (id) => document.getElementById(id);
 
 function showStep(n) {
   for (const i of [1, 2, 3]) $(`step${i}`).hidden = i !== n;
+  const tag = ["", "you", "taste", "city"][n];
+  if (location.hash.slice(1) !== tag) history.replaceState(null, "", `#${tag}`);
   document.querySelectorAll(".steps li").forEach((li) => li.classList.toggle("on", Number(li.dataset.step) <= n));
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -69,7 +71,7 @@ $("saveAvatar").addEventListener("click", async () => {
   } catch (err) { fail("err1", err); }
 });
 
-/* ---------- step 2: what you love back home ---------- */
+/* ---------- step 2: what you love ---------- */
 
 const chosen = []; // { type, name }
 
@@ -124,43 +126,107 @@ $("saveTaste").addEventListener("click", async () => {
     if (missing?.length) { $("err2").textContent = `Couldn't match ${missing.join(", ")}, so they were left out.`; $("err2").hidden = false; }
     showStep(3);
   } catch (err) { fail("err2", err); }
-  $("saveTaste").textContent = "Next: where are you staying?";
+  $("saveTaste").textContent = "Next: where are you?";
   $("saveTaste").disabled = chosen.length < 2;
 });
 
-/* ---------- step 3: where you're staying ---------- */
+/* ---------- step 3: city, then where you're staying ---------- */
 
-let gps = null;
-$("stay").addEventListener("input", () => { gps = null; $("saveStay").disabled = $("stay").value.trim().length < 2; });
+let CITIES = [];
+let me = null;
 
-$("useGps").addEventListener("click", () => {
-  if (!navigator.geolocation) { $("gpsNote").textContent = "This browser can't share location. Type your hotel or area instead."; $("gpsNote").hidden = false; return; }
-  $("gpsNote").textContent = "Asking your phone where you are…";
-  $("gpsNote").hidden = false;
-  navigator.geolocation.getCurrentPosition(
-    (p) => {
-      gps = { lat: p.coords.latitude, lon: p.coords.longitude, label: "Your location" };
-      $("stay").value = "";
-      $("gpsNote").textContent = "Got it. We use this only to find places near you, and never show it to anyone.";
-      $("saveStay").disabled = false;
-    },
-    () => { $("gpsNote").textContent = "Location wasn't shared. Type your hotel or area instead."; },
-    { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
-  );
+function drawCities() {
+  const q = $("cityQ").value.trim().toLowerCase();
+  const list = CITIES.filter((c) => !q || c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q));
+  $("cityList").innerHTML = list.length
+    ? list.map((c) => `<li><button type="button" data-city="${esc(c.name)}" class="${me?.city === c.name ? "on" : ""}"><span class="ms" aria-hidden="true">location_city</span><span><b>${esc(c.name)}</b><small>${esc(c.country)}</small></span></button></li>`).join("")
+    : `<li class="muted">Outside doesn't cover "${esc(q)}" yet. Try a nearby city.</li>`;
+}
+
+function showCity() {
+  const has = Boolean(me?.city);
+  $("cityPick").hidden = has;
+  $("cityDone").hidden = !has;
+  if (has) $("cityName").textContent = me.city;
+  $("stayDone").hidden = !me?.stay;
+  if (me?.stay) $("stayName").textContent = `Staying at ${me.stay.label}`;
+}
+
+async function setCity(body) {
+  $("err3").hidden = true;
+  try {
+    const { user } = await api("/api/me/city", { method: "POST", body });
+    me = user;
+    showCity();
+  } catch (err) { fail("err3", err); }
+}
+
+$("cityQ").addEventListener("input", drawCities);
+$("cityList").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-city]");
+  if (b) setCity({ city: b.dataset.city });
+});
+$("cityChange").addEventListener("click", () => { $("cityPick").hidden = false; $("cityDone").hidden = true; $("cityQ").focus(); });
+
+function locate(noteId) {
+  return new Promise((resolve) => {
+    const note = $(noteId);
+    note.hidden = false;
+    if (!navigator.geolocation) { note.textContent = "This browser can't share location. Pick from the list instead."; return resolve(null); }
+    note.textContent = "Asking your device where you are…";
+    navigator.geolocation.getCurrentPosition(
+      (p) => { note.textContent = "Got it. We only use this to find places near you; nobody else sees it."; resolve({ lat: p.coords.latitude, lon: p.coords.longitude }); },
+      () => { note.textContent = "Location wasn't shared. Type it instead."; resolve(null); },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+    );
+  });
+}
+
+$("cityGps").addEventListener("click", async () => {
+  const p = await locate("cityNote");
+  if (p) setCity(p);
 });
 
-$("saveStay").addEventListener("click", () => {
-  const stay = gps || $("stay").value.trim();
-  try { localStorage.setItem("outside.stay", JSON.stringify(stay)); } catch {}
-  location.href = "/tonight";
+async function saveStay(stay) {
+  $("err3").hidden = true;
+  $("stayNote").hidden = true;
+  try {
+    const { user } = await api("/api/me/stay", { method: "POST", body: { stay } });
+    me = user;
+    $("stay").value = "";
+    $("saveStay").disabled = true;
+    showCity();
+  } catch (err) { $("stayNote").textContent = err.message; $("stayNote").hidden = false; }
+}
+$("stay").addEventListener("input", () => { $("saveStay").disabled = $("stay").value.trim().length < 2; });
+$("stay").addEventListener("keydown", (e) => { if (e.key === "Enter" && !$("saveStay").disabled) $("saveStay").click(); });
+$("saveStay").addEventListener("click", async () => {
+  $("saveStay").disabled = true;
+  $("saveStay").textContent = "Finding it…";
+  await saveStay($("stay").value.trim());
+  $("saveStay").textContent = "Save where I'm staying";
 });
+$("stayGps").addEventListener("click", async () => {
+  const p = await locate("stayNote");
+  if (p) saveStay({ ...p, label: "Your location" });
+});
+$("goTonight").addEventListener("click", () => { location.href = "/tonight"; });
 
 /* ---------- start ---------- */
 
-const [{ options, default: dflt }, { user }] = await Promise.all([api("/api/avatar-options"), api("/api/me")]);
+const [{ options, default: dflt }, { user }, { cities }] = await Promise.all([api("/api/avatar-options"), api("/api/me"), api("/api/cities")]);
 OPTIONS = options;
+CITIES = cities;
+me = user;
 avatar = structuredClone(user.avatar || dflt);
+for (const f of user.favourites || []) chosen.push({ type: f.type, name: f.name });
+drawChosen();
 drawChoices();
 drawPreview();
-if (user.avatar && user.favourites?.length) showStep(3);
+drawCities();
+showCity();
+const want = { you: 1, taste: 2, city: 3 }[location.hash.slice(1)];
+if (want) showStep(want);
+else if (user.avatar && user.favourites?.length) showStep(3);
 else if (user.avatar) showStep(2);
+addEventListener("hashchange", () => { const n = { you: 1, taste: 2, city: 3 }[location.hash.slice(1)]; if (n) showStep(n); });
