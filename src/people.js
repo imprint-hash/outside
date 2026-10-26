@@ -16,9 +16,10 @@
  */
 
 import { get, put, list } from "./store.js";
-import { buildProfile, compareProfiles, matchLine, resolveFavourites } from "./taste.js";
-import { entityById, shortName } from "./places.js";
-import { distanceM, localClock } from "./geo.js";
+import { compareProfiles, matchLine, resolveFavourites } from "./taste.js";
+import { entityById, shortName, resolveOrigin } from "./places.js";
+import { distanceM, nextLocalHour } from "./geo.js";
+import { profileFor } from "./likeness.js";
 import { cleanAvatar } from "./avatar.js";
 import { avatarOf } from "./auth.js";
 import { cityOf, cityNamed, cityNear } from "./cities.js";
@@ -55,36 +56,43 @@ export async function setVisibility(user, visibility) {
   return put("users", { ...user, visibility });
 }
 
-/** Where you are now: a city you picked, or the one nearest your location. */
+const STAY_MAX_M = 60_000;
+
+/**
+ * Where you are now: a city you picked, or the one nearest your location.
+ * A saved stay more than 60 km from the new city is cleared.
+ */
 export async function setCity(user, { city, lat, lon } = {}) {
   const c = city ? cityNamed(city) : Number.isFinite(lat) && Number.isFinite(lon) ? cityNear({ lat, lon }) : null;
   if (!c) throw new RuleError(city ? `Outside doesn't cover ${String(city).slice(0, 40)} yet. Pick a city from the list.` : "We couldn't place you in a city we cover. Pick one from the list.", 400);
-  return put("users", { ...user, city: c.name });
+  const stay = user.stay && distanceM(user.stay, c) <= STAY_MAX_M ? user.stay : null;
+  return put("users", { ...user, city: c.name, stay });
+}
+
+/** Where you're staying in your city: a hotel or area name, or a point. */
+export async function setStay(user, stay) {
+  const city = cityOf(user);
+  const p = await resolveOrigin(stay, city.name);
+  if (distanceM(p, city) > STAY_MAX_M) throw new RuleError(`That's outside ${city.name}. Change your city first.`, 422);
+  const saved = { lat: p.lat, lon: p.lon, label: String(p.label || "Your location").slice(0, 80) };
+  return put("users", { ...user, stay: saved });
 }
 
 /** Taste is compared in the city both people are in, since the place picks are local. */
-async function profileOf(user, city = cityOf(user).name) {
-  if (!user.favourites?.length) return null;
-  return buildProfile(user.favourites, { city });
-}
+const profileOf = (user, city = cityOf(user).name) => profileFor(user, city);
 
 /* ---------- check-in ---------- */
 
-/** Minutes from now until 6am at the venue. */
-function untilSixAm(now, timeZone) {
-  const { hour, minute } = localClock(now, timeZone);
-  const t = hour * 60 + minute;
-  return t < 360 ? 360 - t : 1440 - t + 360;
-}
 
 export async function checkIn(user, venueId, now = new Date()) {
   const venue = await entityById(venueId);
   if (!venue.location) throw new RuleError("That place has no location on record, so you can't check in there.", 422);
-  const expiresAt = new Date(now.getTime() + untilSixAm(now, cityOf(user).tz) * 60_000).toISOString();
+  const expiresAt = nextLocalHour(now, cityOf(user).tz, 6).toISOString();
   // One check-in at a time: a new one replaces the old.
   for (const c of await list("checkins", (c) => c.userId === user.id && !c.endedAt, { userId: user.id })) await put("checkins", { ...c, endedAt: now.toISOString() });
   return put("checkins", {
     userId: user.id,
+    city: cityOf(user).name,
     venueId,
     venueName: shortName(venue.name),
     venueLocation: { lat: venue.location.lat, lon: venue.location.lon },
@@ -97,7 +105,7 @@ export async function checkOut(user, now = new Date()) {
   for (const c of await activeCheckins((c) => c.userId === user.id, now, { userId: user.id })) await put("checkins", { ...c, endedAt: now.toISOString() });
 }
 
-async function activeCheckins(where, now = new Date(), match = {}) {
+export async function activeCheckins(where, now = new Date(), match = {}) {
   return list("checkins", (c) => !c.endedAt && new Date(c.expiresAt) > now && where(c), match);
 }
 
@@ -107,7 +115,7 @@ export async function myCheckin(user, now = new Date()) {
 
 /* ---------- blocking ---------- */
 
-async function blocked(a, b) {
+export async function blocked(a, b) {
   const [mine, theirs] = await Promise.all([list("blocks", (x) => x.who === b, { by: a }), list("blocks", (x) => x.who === a, { by: b })]);
   return mine.length + theirs.length > 0;
 }
@@ -133,7 +141,7 @@ const pair = (h, a, b) => (h.from === a && h.to === b) || (h.from === b && h.to 
 /* ---------- who's here ---------- */
 
 /** Can `viewer` see `target` in the one-to-one list, given their match? */
-function allowedToSee(viewer, target, match) {
+export function allowedToSee(viewer, target, match) {
   switch (target.visibility || "everyone") {
     case "everyone": return true;
     case "strong": return match >= STRONG_MATCH;

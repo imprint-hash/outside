@@ -56,6 +56,19 @@ export function localClock(now = new Date(), timeZone = "Africa/Lagos") {
 }
 
 /**
+ * The next time the local clock in `timeZone` reads `hour`:00, strictly after
+ * `now` (at 06:00 exactly, that's tomorrow's 06:00). Check-ins expire then, and
+ * "tonight" runs until then.
+ */
+export function nextLocalHour(now = new Date(), timeZone = "UTC", hour = 6) {
+  const { hour: h, minute } = localClock(now, timeZone);
+  const t = h * 60 + minute;
+  const minutes = (hour * 60 - t + 1440) % 1440 || 1440;
+  const startOfMinute = now.getTime() - now.getUTCSeconds() * 1000 - now.getUTCMilliseconds();
+  return new Date(startOfMinute + minutes * 60_000);
+}
+
+/**
  * Estimated minutes from a to b by car at this hour, plus a warning when the
  * trip crosses between Island and Mainland in rush hour. Under 1.2 km it is a
  * walk. Always labelled an estimate where it is shown.
