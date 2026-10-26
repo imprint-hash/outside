@@ -105,7 +105,7 @@ export function summarize(reviews, { viewerId = null, similarity = () => null } 
     const match = sim && typeof sim === "object" ? sim.match ?? null : sim ?? null;
     const because = sim && typeof sim === "object" ? sim.because || null : null;
     if (match != null && match >= LIKE_YOU) {
-      const w = (match - 40) / 60;
+      const w = (match - (LIKE_YOU - 10)) / (110 - LIKE_YOU); // just over the line counts a little, a perfect match counts fully
       sumW += w;
       sumWS += w * r.stars;
       count++;

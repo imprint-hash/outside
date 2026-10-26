@@ -18,7 +18,7 @@ import { avatarOf } from "./auth.js";
 import { cityOf, cityNear } from "./cities.js";
 
 /** A match at or above this counts as "like you". Tune from the demo match matrix. */
-export const LIKE_YOU = 50;
+export const LIKE_YOU = 40; // tuned on the London demo: same-genre pairs score 55–79, different tastes 10–30
 const MAX_FACES = 6;
 const AT_ONCE = 4;
 

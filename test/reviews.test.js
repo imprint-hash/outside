@@ -79,10 +79,10 @@ test("summarize: weighted 'like you' average, own review left out, no names", ()
     { userId: "c", stars: 1, note: "Too loud", at: "4" },
     { userId: "d", stars: 2, note: "", at: "5" },
   ];
-  const sims = { a: { match: 100, because: "Loves Tems · Afrobeats" }, b: 70, c: 49, d: null, me: 100 };
+  const sims = { a: { match: 100, because: "Loves Tems · Afrobeats" }, b: 70, c: 39, d: null, me: 100 };
   const s = reviews.summarize(rs, { viewerId: "me", similarity: (r) => sims[r.userId] });
   assert.deepEqual(s.overall, { avg: 2.4, count: 5 });
-  // w(a) = 1, w(b) = 0.5 → (5 + 1.5) / 1.5 = 4.33
+  // LIKE_YOU 40: w(a) = 70/70 = 1, w(b) = 40/70 → (5 + 3·0.571) / 1.571 = 4.27; c at 39 is below the line
   assert.deepEqual(s.likeYou, { avg: 4.3, count: 2, enough: true });
   assert.deepEqual(s.notes.map((n) => n.note), ["Loved it", "Fine", "Too loud"]);
   assert.equal(s.notes[0].because, "Loves Tems · Afrobeats");

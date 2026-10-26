@@ -65,7 +65,12 @@ export function nextLocalHour(now = new Date(), timeZone = "UTC", hour = 6) {
   const t = h * 60 + minute;
   const minutes = (hour * 60 - t + 1440) % 1440 || 1440;
   const startOfMinute = now.getTime() - now.getUTCSeconds() * 1000 - now.getUTCMilliseconds();
-  return new Date(startOfMinute + minutes * 60_000);
+  let at = new Date(startOfMinute + minutes * 60_000);
+  // When the clocks change overnight, the plain count lands an hour off: nudge it to the real local hour.
+  const got = localClock(at, timeZone);
+  const off = (got.hour * 60 + got.minute) - hour * 60;
+  if (off && Math.abs(off) <= 120) at = new Date(at.getTime() - off * 60_000);
+  return at;
 }
 
 /**

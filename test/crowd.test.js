@@ -41,9 +41,9 @@ beforeEach(async () => {
   viewer = await store.put("users", { firstName: "Viewer", favourites: [{ id: "fav-viewer", name: "Mine" }], visibility: "everyone" });
 });
 
-test("threshold edges: 49 isn't like you, 50 is, 60 is strong", async () => {
-  assert.equal(LIKE_YOU, 50);
-  await person(49); await person(50); await person(60);
+test("threshold edges: 39 isn't like you, 40 is, 60 is strong", async () => {
+  assert.equal(LIKE_YOU, 40);
+  await person(39); await person(40); await person(60);
   const v = (await crowdAt(viewer, null, { now, cityName: "London" })).get("ronnie");
   assert.equal(v.here, 3);
   assert.equal(v.likeYou, 2);
