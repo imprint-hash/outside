@@ -2,7 +2,7 @@
 
 Your kind of places, events and people, wherever you land. Built on Qloo's taste graph.
 
-Live: https://outside-REPLACE.vercel.app
+Live: https://outside-tonight.vercel.app
 
 ## What it does
 

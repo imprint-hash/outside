@@ -4,3 +4,5 @@ node_modules/
 data/store.json
 PLAN.md
 BRIEF.md
+.vercel
+.env*
