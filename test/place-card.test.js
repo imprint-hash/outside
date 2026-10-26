@@ -78,12 +78,12 @@ test("crowd, our ratings and what you can do", async () => {
   const at = now.toISOString(), exp = new Date("2026-10-24T06:00:00+01:00").toISOString();
   await store.put("users", { id: "o", firstName: "Other", favourites: [], visibility: "everyone" });
   await store.put("checkins", { userId: "o", venueId: "P1", venueName: "Dishoom", venueLocation: FULL.location, city: "London", at, expiresAt: exp });
-  await store.put("checkins", { userId: "v", venueId: "P1", venueName: "Dishoom", venueLocation: FULL.location, city: "London", at, expiresAt: exp });
+  await store.put("checkins", { userId: "v", venueId: "P1", venueName: "Dishoom", venueLocation: FULL.location, city: "London", verified: true, at, expiresAt: exp });
   await store.put("reviews", { id: "o|P1|2026-10-23", userId: "o", placeId: "P1", stars: 4, note: "Get the daal", at });
   const c = await card.placeCard(viewer, "P1", { now, origin: { lat: 51.52, lon: -0.08 } });
   assert.equal(c.crowd.here, 1);
   assert.equal(c.crowd.likeYou, 0);
-  assert.deepEqual(c.you, { checkedInHere: true, canSayHi: true, canReview: true, reviewedToday: false });
+  assert.deepEqual(c.you, { checkedInHere: true, verifiedHere: true, canSayHi: true, canReview: true, reviewedToday: false });
   assert.deepEqual(c.ours.overall, { avg: 4, count: 1 });
   assert.equal(c.ours.notes[0].note, "Get the daal");
   assert.ok(c.place.trip);

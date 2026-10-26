@@ -23,7 +23,7 @@ const MAX_FACES = 6;
 const AT_ONCE = 4;
 
 /** Run `fn` over `items`, at most `n` at a time, keeping order. */
-async function pool(items, n, fn) {
+export async function pool(items, n, fn) {
   const out = new Array(items.length);
   let next = 0;
   const worker = async () => {
@@ -41,7 +41,8 @@ const inCity = (c, cityName) => (c.city ? c.city === cityName : c.venueLocation 
 /**
  * For each venue with someone checked in (only `venueIds` when given), a Map
  * from venueId to { venueId, venueName, location, here, likeYou, strong,
- * plumbob, faces? }.
+ * demo, plumbob, faces? }. `demo` counts labelled demo people in `here`, and
+ * each face says whether it's a demo person.
  */
 export async function crowdAt(viewer, venueIds = null, { now = new Date(), cityName = cityOf(viewer).name, faces = false } = {}) {
   const only = venueIds ? new Set(venueIds) : null;
@@ -64,15 +65,16 @@ export async function crowdAt(viewer, venueIds = null, { now = new Date(), cityN
     const { c, u, like } = s;
     let v = out.get(c.venueId);
     if (!v) {
-      v = { venueId: c.venueId, venueName: c.venueName, location: c.venueLocation || null, here: 0, likeYou: 0, strong: 0, plumbob: null, ...(faces ? { faces: [] } : {}) };
+      v = { venueId: c.venueId, venueName: c.venueName, location: c.venueLocation || null, here: 0, likeYou: 0, strong: 0, demo: 0, plumbob: null, ...(faces ? { faces: [] } : {}) };
       out.set(c.venueId, v);
     }
     const m = like.match ?? 0;
     v.here++;
+    if (u.demo) v.demo++;
     if (m >= LIKE_YOU) v.likeYou++;
     if (m >= STRONG_MATCH) v.strong++;
     if (faces && viewer.visibility !== "nobody" && allowedToSee(viewer, u, m)) {
-      v.faces.push({ avatar: avatarOf(u), bubbles: [...like.because.bothLove, ...like.because.music].slice(0, 3), match: like.match, line: like.line });
+      v.faces.push({ avatar: avatarOf(u), bubbles: [...like.because.bothLove, ...like.because.music].slice(0, 3), match: like.match, line: like.line, demo: !!u.demo });
     }
   }
   for (const v of out.values()) {

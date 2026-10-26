@@ -17,7 +17,7 @@ import { placeFull, shapePlace, saying } from "./places.js";
 import { list, get } from "./store.js";
 import { summarize, reviewStatus } from "./reviews.js";
 import { likeness } from "./likeness.js";
-import { crowdAt } from "./crowd.js";
+import { crowdAt, pool } from "./crowd.js";
 import { myCheckin } from "./people.js";
 import { rideLinks } from "./rides.js";
 import { cityOf, cityNear } from "./cities.js";
@@ -64,7 +64,7 @@ function becauseLine(like) {
   return bits.join(" · ") || null;
 }
 
-const EMPTY_CROWD = (id) => ({ venueId: id, here: 0, likeYou: 0, strong: 0, plumbob: null, faces: [] });
+const EMPTY_CROWD = (id) => ({ venueId: id, here: 0, likeYou: 0, strong: 0, demo: 0, plumbob: null, faces: [] });
 
 export async function placeCard(viewer, placeId, { origin = null, match = null, now = new Date() } = {}) {
   const e = await placeFull(placeId);
@@ -79,12 +79,12 @@ export async function placeCard(viewer, placeId, { origin = null, match = null, 
     .sort((a, b) => String(b.at).localeCompare(String(a.at)))
     .slice(0, MAX_REVIEWS);
   const sims = new Map();
-  await Promise.all([...new Set(reviews.map((r) => r.userId))].filter((uid) => uid !== viewer.id).map(async (uid) => {
+  await pool([...new Set(reviews.map((r) => r.userId))].filter((uid) => uid !== viewer.id), 4, async (uid) => {
     const reviewer = await get("users", uid);
     if (!reviewer) return;
     const like = await likeness(viewer, reviewer, viewerCity.name).catch(() => null);
     if (like) sims.set(uid, { match: like.match, because: becauseLine(like) });
-  }));
+  });
   const ours = summarize(reviews, { viewerId: viewer.id, similarity: (r) => sims.get(r.userId) ?? null });
 
   const [crowdMap, mine, status] = await Promise.all([
@@ -93,9 +93,10 @@ export async function placeCard(viewer, placeId, { origin = null, match = null, 
     reviewStatus(viewer, id, now),
   ]);
   const c = crowdMap.get(id);
-  const crowd = c ? { here: c.here, likeYou: c.likeYou, strong: c.strong, plumbob: c.plumbob, faces: c.faces || [] } : EMPTY_CROWD(id);
+  const crowd = c ? { here: c.here, likeYou: c.likeYou, strong: c.strong, demo: c.demo || 0, plumbob: c.plumbob, faces: c.faces || [] } : EMPTY_CROWD(id);
   delete crowd.venueId;
   const checkedInHere = mine?.venueId === id;
+  const verifiedHere = checkedInHere && mine.verified === true;
 
   const m = match === null || match === undefined || match === "" ? null : Number(match);
   const fitMatch = Number.isFinite(m) ? Math.max(0, Math.min(100, Math.round(m))) : null;
@@ -106,7 +107,7 @@ export async function placeCard(viewer, placeId, { origin = null, match = null, 
     qloo: qlooSide(e),
     ours,
     crowd,
-    you: { checkedInHere, canSayHi: checkedInHere, canReview: status.canReview, reviewedToday: status.reviewedToday },
+    you: { checkedInHere, verifiedHere, canSayHi: verifiedHere, canReview: status.canReview, reviewedToday: status.reviewedToday },
     ride: loc ? rideLinks({ from: origin, to: loc, toName: place.name, cc: city.cc }) : null,
   };
 }

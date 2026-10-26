@@ -84,18 +84,33 @@ const profileOf = (user, city = cityOf(user).name) => profileFor(user, city);
 /* ---------- check-in ---------- */
 
 
-export async function checkIn(user, venueId, now = new Date()) {
+/** How close (metres) your phone's location must be to the venue for a verified check-in. */
+export const CHECKIN_RADIUS_M = 300;
+export const SHARE_LOCATION = "Share your location when you check in to see who's here.";
+
+/**
+ * Check in at a venue. `at` is where your phone says you are ({ lat, lon }),
+ * if you shared it. Within CHECKIN_RADIUS_M of the venue the check-in is
+ * verified, and only a verified check-in shows names and lets you say hi.
+ * Without it you're still counted in the crowd. The check-in is filed under
+ * the venue's city, so a Londoner in Lagos shows up on Lagos's map.
+ */
+export async function checkIn(user, venueId, now = new Date(), at = null) {
   const venue = await entityById(venueId);
   if (!venue.location) throw new RuleError("That place has no location on record, so you can't check in there.", 422);
-  const expiresAt = nextLocalHour(now, cityOf(user).tz, 6).toISOString();
+  const venueLocation = { lat: venue.location.lat, lon: venue.location.lon };
+  const city = cityNear(venueLocation) || cityOf(user);
+  const verified = Boolean(at && Number.isFinite(at.lat) && Number.isFinite(at.lon) && distanceM(at, venueLocation) <= CHECKIN_RADIUS_M);
+  const expiresAt = nextLocalHour(now, city.tz, 6).toISOString();
   // One check-in at a time: a new one replaces the old.
   for (const c of await list("checkins", (c) => c.userId === user.id && !c.endedAt, { userId: user.id })) await put("checkins", { ...c, endedAt: now.toISOString() });
   return put("checkins", {
     userId: user.id,
-    city: cityOf(user).name,
+    city: city.name,
     venueId,
     venueName: shortName(venue.name),
-    venueLocation: { lat: venue.location.lat, lon: venue.location.lon },
+    venueLocation,
+    verified,
     at: now.toISOString(),
     expiresAt,
   });
@@ -152,29 +167,37 @@ export function allowedToSee(viewer, target, match) {
 
 /**
  * People checked in at the same venue as you, tonight, best match first.
- * Shows first names and shared tastes only. Also counts people who prefer
- * groups, so a group plan can be offered without naming them.
+ * Shows first names and shared tastes only, and only when your own check-in
+ * is verified (you shared a location at the venue). Without that you get the
+ * count and faces, no names. Also counts people who prefer groups, so a group
+ * plan can be offered without naming them.
  */
 export async function whoIsHere(viewer, now = new Date()) {
   const mine = await myCheckin(viewer, now);
   if (!mine) throw new RuleError("Check in somewhere first to see who's there.", 409);
-  if (viewer.visibility === "nobody") return { venue: mine.venueName, people: [], groupMinded: 0, note: "You're invisible tonight, so you can't see others either." };
+  const verified = mine.verified === true;
+  if (viewer.visibility === "nobody") return { venue: mine.venueName, verified, people: [], faces: [], here: 0, groupMinded: 0, note: "You're invisible tonight, so you can't see others either." };
   const myProfile = await profileOf(viewer);
   const others = await activeCheckins((c) => c.venueId === mine.venueId && c.userId !== viewer.id, now, { venueId: mine.venueId });
 
   const people = [];
-  let groupMinded = 0;
+  let groupMinded = 0, here = 0;
   for (const c of others) {
     const u = await get("users", c.userId);
-    if (!u || (await blocked(viewer.id, u.id))) continue;
+    if (!u || (u.visibility || "everyone") === "nobody" || (await blocked(viewer.id, u.id))) continue;
+    here++;
     const theirs = await profileOf(u, cityOf(viewer).name);
     const cmp = myProfile && theirs ? compareProfiles(myProfile, theirs, { namesA: viewer.favourites.map((f) => f.name), namesB: u.favourites.map((f) => f.name) }) : { match: null, because: { bothLove: [], music: [], places: [], wouldGoTo: [] } };
     if (u.visibility === "groups" && (cmp.match ?? 0) >= 50) groupMinded++;
     if (!allowedToSee(viewer, u, cmp.match ?? 0)) continue;
-    people.push({ userId: u.id, firstName: u.firstName, avatar: avatarOf(u), bubbles: [...cmp.because.bothLove, ...cmp.because.music].slice(0, 3), match: cmp.match, line: cmp.match == null ? "Hasn't added their taste yet" : matchLine(cmp), verified: u.verified });
+    people.push({ userId: u.id, firstName: u.firstName, avatar: avatarOf(u), bubbles: [...cmp.because.bothLove, ...cmp.because.music].slice(0, 3), match: cmp.match, line: cmp.match == null ? "Hasn't added their taste yet" : matchLine(cmp), verified: u.verified, demo: !!u.demo });
   }
   people.sort((a, b) => (b.match ?? -1) - (a.match ?? -1));
-  return { venue: mine.venueName, people, groupMinded };
+  if (!verified) {
+    const faces = people.map(({ avatar, bubbles, match, line, demo }) => ({ avatar, bubbles, match, line, demo }));
+    return { venue: mine.venueName, verified, people: [], faces, here, groupMinded, note: SHARE_LOCATION };
+  }
+  return { venue: mine.venueName, verified, people, faces: [], here, groupMinded };
 }
 
 /* ---------- saying hi ---------- */
@@ -182,6 +205,7 @@ export async function whoIsHere(viewer, now = new Date()) {
 export async function sayHi(user, toId, now = new Date()) {
   if (toId === user.id) throw new RuleError("That's you.", 400);
   const here = await whoIsHere(user, now);
+  if (!here.verified) throw new RuleError(SHARE_LOCATION, 403);
   const target = here.people.find((p) => p.userId === toId);
   if (!target) throw new RuleError("They're not here, or they've chosen not to be seen.", 404);
   const lastHour = await list("hellos", (h) => h.from === user.id && now - new Date(h.at) < 3600_000, { from: user.id });

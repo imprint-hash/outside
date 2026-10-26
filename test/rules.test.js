@@ -22,7 +22,7 @@ async function twoPeopleAtQuilox() {
   await store.reset();
   const a = await store.put("users", { firstName: "A", favourites: [], visibility: "everyone" });
   const b = await store.put("users", { firstName: "B", favourites: [], visibility: "everyone" });
-  for (const u of [a, b]) await store.put("checkins", { userId: u.id, venueId: "Q", venueName: "Quilox", venueLocation: venue, at: t0.toISOString(), expiresAt: new Date("2026-12-19T06:00:00+01:00").toISOString() });
+  for (const u of [a, b]) await store.put("checkins", { userId: u.id, venueId: "Q", venueName: "Quilox", venueLocation: venue, verified: true, at: t0.toISOString(), expiresAt: new Date("2026-12-19T06:00:00+01:00").toISOString() });
   const h = await store.put("hellos", { from: a.id, to: b.id, venueId: "Q", venueName: "Quilox", status: "accepted", at: t0.toISOString() });
   return { a, b, h };
 }
@@ -60,16 +60,30 @@ test("check-ins expire at 6am: nobody is 'here' the next morning", async () => {
 test("no more than 10 hellos an hour", async () => {
   await store.reset();
   const me = await store.put("users", { firstName: "Me", favourites: [], visibility: "everyone" });
-  await store.put("checkins", { userId: me.id, venueId: "Q", venueName: "Quilox", venueLocation: venue, at: t0.toISOString(), expiresAt: new Date("2026-12-19T06:00:00+01:00").toISOString() });
+  await store.put("checkins", { userId: me.id, venueId: "Q", venueName: "Quilox", venueLocation: venue, verified: true, at: t0.toISOString(), expiresAt: new Date("2026-12-19T06:00:00+01:00").toISOString() });
   const others = [];
   for (let i = 0; i < 11; i++) {
     const u = await store.put("users", { firstName: `P${i}`, favourites: [], visibility: "everyone" });
-    await store.put("checkins", { userId: u.id, venueId: "Q", venueName: "Quilox", venueLocation: venue, at: t0.toISOString(), expiresAt: new Date("2026-12-19T06:00:00+01:00").toISOString() });
+    await store.put("checkins", { userId: u.id, venueId: "Q", venueName: "Quilox", venueLocation: venue, verified: true, at: t0.toISOString(), expiresAt: new Date("2026-12-19T06:00:00+01:00").toISOString() });
     others.push(u);
   }
   for (let i = 0; i < 10; i++) await people.sayHi(me, others[i].id, plus(i));
   await assert.rejects(people.sayHi(me, others[10].id, plus(11)), /a lot of hellos/);
   await people.sayHi(me, others[10].id, plus(75)); // an hour later it's fine
+});
+
+test("an unverified check-in sees counts and faces, not names, and can't say hi", async () => {
+  const { a, b } = await twoPeopleAtQuilox();
+  const mine = (await store.list("checkins", (c) => c.userId === a.id))[0];
+  await store.put("checkins", { ...mine, verified: false });
+  const here = await people.whoIsHere(a, plus(5));
+  assert.equal(here.verified, false);
+  assert.deepEqual(here.people, []);
+  assert.equal(here.here, 1);
+  assert.equal(here.faces.length, 1);
+  assert.ok(!JSON.stringify(here).includes(b.id) && !JSON.stringify(here).includes('"B"'));
+  assert.match(here.note, /Share your location/);
+  await assert.rejects(people.sayHi(a, b.id, plus(6)), (e) => e.status === 403 && /Share your location/.test(e.message));
 });
 
 test("chat is closed until they accept, and declined stays closed", async () => {
