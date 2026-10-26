@@ -70,7 +70,7 @@ export async function signUp({ email, firstName, homeCity }) {
 }
 
 /** What a person may see about themselves. Never the hash of anything secret. */
-export const selfView = (u) => ({ id: u.id, email: u.email, firstName: u.firstName, homeCity: u.homeCity, verified: u.verified, favourites: u.favourites, visibility: u.visibility, avatar: u.avatar || null });
+export const selfView = (u) => ({ id: u.id, email: u.email, firstName: u.firstName, homeCity: u.homeCity, city: u.city || null, verified: u.verified, favourites: u.favourites, visibility: u.visibility, avatar: u.avatar || null });
 
 /** Someone else's avatar: theirs if they made one, the default if not. */
 export const avatarOf = (u) => u?.avatar || DEFAULT_AVATAR;

@@ -71,7 +71,7 @@ export function shapePlace(e, { origin, now = new Date(), timeZone, because = []
     price: PRICE[p.price_level] || null,
     rating: p.business_rating ? Math.round(p.business_rating * 10) / 10 : null,
     hours: openStatus(p.hours, now, timeZone || zoneFor(e)),
-    trip: origin && where ? travel(origin, where, now) : null,
+    trip: origin && where ? travel(origin, where, now, timeZone || zoneFor(e)) : null,
     image: (Array.isArray(p.images) && p.images[0]?.url) || p.image?.url || null,
     website: p.website || null,
     phone: p.phone || null,
@@ -88,8 +88,9 @@ function listOf(names) {
 }
 
 /**
- * Where the visitor is staying, as a point. Accepts { lat, lon }, a Lagos area
- * ("Lekki Phase 1"), or a place name Qloo knows ("Eko Hotel, Victoria Island").
+ * Where you're staying, as a point. Accepts { lat, lon }, a place name Qloo
+ * knows in your city ("The Hoxton, Shoreditch"), or in Lagos one of the areas
+ * people give instead of an address ("Lekki Phase 1").
  */
 export async function resolveOrigin(input, city = "Lagos") {
   if (input && typeof input === "object" && Number.isFinite(input.lat) && Number.isFinite(input.lon)) {
@@ -97,10 +98,10 @@ export async function resolveOrigin(input, city = "Lagos") {
   }
   const text = String(input || "").trim();
   if (!text) throw new QlooError("Tell Outside where you're staying: a hotel, an area, or your location.", 400);
-  const area = LAGOS_AREAS[text.toLowerCase()];
+  const area = city === "Lagos" ? LAGOS_AREAS[text.toLowerCase()] : null;
   if (area) return { lat: area.lat, lon: area.lon, label: titleCase(text) };
   const e = await findEntity(text, "urn:entity:place", { city });
-  if (!e?.location) throw new QlooError(`Could not find "${text}". Try the hotel's full name or the area, like "Victoria Island".`, 404);
+  if (!e?.location) throw new QlooError(`Could not find "${text}". Try the hotel's full name, or use your location.`, 404);
   return { lat: e.location.lat, lon: e.location.lon, label: e.name, id: e.entity_id };
 }
 
@@ -135,7 +136,7 @@ async function placesAround({ origin, kinds, signals = [], radius = 5000, take =
 /**
  * Rank by taste, but don't let a long trip win. Qloo's scores for places that
  * suit the same crowd sit close together (90, 91, 92), so a few points of
- * match are worth less than half an hour of Lagos traffic.
+ * match are worth less than half an hour in traffic.
  */
 function rankScore(p) {
   const taste = p.match ?? 0;
@@ -160,10 +161,10 @@ function labelFits(places) {
 }
 
 /** Places near where you're staying that fit what you love. */
-export async function nearYou({ origin, favourites = [], kinds = ["restaurant", "lounge", "club", "bar"], radius = 5000, limit = 12, now = new Date(), openNow = false }) {
+export async function nearYou({ origin, favourites = [], kinds = ["restaurant", "lounge", "club", "bar"], radius = 5000, limit = 12, now = new Date(), openNow = false, timeZone }) {
   const ids = favourites.map((f) => f.id);
   const found = await placesAround({ origin, kinds, signals: ids, radius });
-  let places = found.map((e) => ({ ...shapePlace(e, { origin, now, because: favourites.map((f) => f.name) }), kind: e.kind }));
+  let places = found.map((e) => ({ ...shapePlace(e, { origin, now, timeZone, because: favourites.map((f) => f.name) }), kind: e.kind }));
   if (openNow) places = places.filter((p) => !p.hours.known || p.hours.open);
   return labelFits(places.sort(byTaste).slice(0, limit));
 }
@@ -172,7 +173,7 @@ export async function nearYou({ origin, favourites = [], kinds = ["restaurant", 
  * Your home favourites, translated into another city: the places there that
  * people who love your places back home also love.
  */
-export async function translateCity({ favourites, city = "Lagos", origin = null, kinds = ["restaurant", "lounge", "bar", "club"], limit = 10, now = new Date() }) {
+export async function translateCity({ favourites, city = "Lagos", origin = null, kinds = ["restaurant", "lounge", "bar", "club"], limit = 10, now = new Date(), timeZone }) {
   if (!favourites?.length) throw new QlooError("Add at least one place or artist you love back home.", 400);
   const ids = favourites.map((f) => f.id);
   const lists = await Promise.all(
@@ -186,7 +187,7 @@ export async function translateCity({ favourites, city = "Lagos", origin = null,
   for (const e of lists.flat()) if (!seen.has(e.entity_id)) seen.set(e.entity_id, e);
   const out = [...seen.values()]
     .filter(isNightOut)
-    .map((e) => ({ ...shapePlace(e, { origin, now, because: favourites.map((f) => f.name) }), kind: e.kind }))
+    .map((e) => ({ ...shapePlace(e, { origin, now, timeZone, because: favourites.map((f) => f.name) }), kind: e.kind }))
     .sort(byTaste)
     .slice(0, limit);
   return labelFits(out);
@@ -204,14 +205,14 @@ export async function entityById(id) {
  * Tonight: you're at a venue and want what's next. Places close by, open now,
  * that people who go to this venue also like.
  */
-export async function tonight({ venueId, kinds = ["restaurant"], radius = 2500, limit = 5, now = new Date() }) {
+export async function tonight({ venueId, kinds = ["restaurant"], radius = 2500, limit = 5, now = new Date(), timeZone }) {
   const venue = await entityById(venueId);
   if (!venue.location) throw new QlooError("That venue has no location on record.", 422);
   const origin = { lat: venue.location.lat, lon: venue.location.lon };
   const found = await placesAround({ origin, kinds, signals: [venueId], radius, take: 25 });
   const places = found
     .filter((e) => e.entity_id !== venueId)
-    .map((e) => ({ ...shapePlace(e, { origin, now, because: [venue.name] }), kind: e.kind }))
+    .map((e) => ({ ...shapePlace(e, { origin, now, timeZone, because: [venue.name] }), kind: e.kind }))
     .filter((p) => p.hours.open || (p.hours.known && p.hours.opensIn != null && p.hours.opensIn <= 30))
     .sort(byTaste)
     .slice(0, limit);

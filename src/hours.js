@@ -20,7 +20,7 @@ const clock = (m) => {
   return `${h % 12 || 12}${mm === "00" ? "" : `:${mm}`}${h < 12 ? "am" : "pm"}`;
 };
 
-/** Time zone for a place: Lagos for Nigeria, otherwise what the caller knows. */
+/** Time zone for a place when the caller doesn't know the city: Lagos for Nigeria, else UTC. */
 export function zoneFor(place, fallback = "UTC") {
   return place?.properties?.geocode?.country_code === "NG" ? "Africa/Lagos" : fallback;
 }

@@ -1,11 +1,11 @@
 /**
- * Distances, Lagos areas, and travel time.
+ * Distances and travel time, in any city.
  *
- * In Lagos, kilometres lie: 4 km across Third Mainland Bridge at 7pm can take
- * an hour and a half. So a pick says how long it takes to get there at this
- * hour, as an estimate, and warns when it means crossing between the Island
- * and the Mainland at a bad time. Outside Lagos it falls back to a plain city
- * estimate.
+ * Kilometres lie in a city: 4 km at rush hour can take far longer than 4 km at
+ * midnight. So a pick says how long it takes to get there at this hour, in the
+ * city's own time, as an estimate. Lagos gets one extra rule, because crossing
+ * between the Island and the Mainland at the wrong hour can take an hour and
+ * a half; other cities use a plain rush-hour estimate.
  */
 
 const R = 6371000;
@@ -60,12 +60,12 @@ export function localClock(now = new Date(), timeZone = "Africa/Lagos") {
  * trip crosses between Island and Mainland in rush hour. Under 1.2 km it is a
  * walk. Always labelled an estimate where it is shown.
  */
-export function travel(a, b, now = new Date()) {
+export function travel(a, b, now = new Date(), timeZone = "UTC") {
   const m = distanceM(a, b);
   if (m <= 1200) return { meters: m, minutes: Math.max(2, Math.round(m / 80)), mode: "walk", warning: null };
 
   const lagos = inLagos(a) && inLagos(b);
-  const { hour, weekday } = localClock(now, lagos ? "Africa/Lagos" : "UTC");
+  const { hour, weekday } = localClock(now, lagos ? "Africa/Lagos" : timeZone);
   const weekdayRush = weekday >= 1 && weekday <= 5 && ((hour >= 7 && hour < 10) || (hour >= 16 && hour < 21));
   const lateNight = hour >= 23 || hour < 5;
   // Average door-to-door speeds, km/h, with roads twice as long as the crow flies.

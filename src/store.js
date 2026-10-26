@@ -10,7 +10,8 @@
  *   whenever OUTSIDE_STORE names a file.
  *
  * Collections: users, checkins, hellos, messages, meetups, blocks, reports,
- * events (organiser-added).
+ * events (found and organiser-added), reviews, searches (per-city search
+ * markers), profiles (cached taste profiles).
  */
 
 import "./env.js";
@@ -21,7 +22,7 @@ import { randomUUID } from "node:crypto";
 
 export const newId = () => randomUUID();
 
-const COLLECTIONS = ["users", "checkins", "hellos", "messages", "meetups", "blocks", "reports", "events"];
+const COLLECTIONS = ["users", "checkins", "hellos", "messages", "meetups", "blocks", "reports", "events", "reviews", "searches", "profiles"];
 
 export class StoreError extends Error {
   constructor(message) {

@@ -1,0 +1,5 @@
+{ "regions": ["fra1"], "cleanUrls": true, "outputDirectory": "public",
+  "functions": { "api/index.js": { "maxDuration": 300, "includeFiles": "data/events.json" } },
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api" }],
+  "crons": [{ "path": "/api/cron/events", "schedule": "0 4 * * *" },
+            { "path": "/api/cron/demo",   "schedule": "0 16 * * *" }] }

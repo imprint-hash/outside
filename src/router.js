@@ -7,20 +7,14 @@
 import { QlooError, searchEntities, stats, prettyName } from "./qloo.js";
 import { AuthError, signUp, userFromToken, selfView } from "./auth.js";
 import { resolveOrigin, nearYou, translateCity, tonight, CATEGORIES } from "./places.js";
-import { eventsForYou, afterTheShow, seededEvents } from "./events.js";
-import { refreshLagosEvents } from "./lagos-events.js";
 import * as people from "./people.js";
-import { dashboard } from "./organiser.js";
-import { get, put, list, storeName, StoreError } from "./store.js";
+import { get, put, storeName, StoreError } from "./store.js";
 import { TYPES } from "./taste.js";
 import { AVATAR_OPTIONS, DEFAULT_AVATAR, AvatarError } from "./avatar.js";
-
-class HttpError extends Error {
-  constructor(message, status = 400) {
-    super(message);
-    this.status = status;
-  }
-}
+import { cityOf } from "./cities.js";
+import { HttpError } from "./http.js";
+import * as cityMap from "./routes/city-map.js";
+import * as venue from "./routes/venue.js";
 
 const MAX_BODY = 32 * 1024;
 
@@ -53,23 +47,8 @@ const kindsFrom = (v, fallback) => {
   return ks.length ? ks : fallback;
 };
 
-/**
- * Real events first: ones found by the daily search and ones organisers add.
- * The hand-written examples only fill in while fewer than three real events
- * are known; the announced Detty December opening night always stays.
- */
-async function allEvents() {
-  const stored = await list("events");
-  const realIds = new Set(stored.map((e) => e.title.toLowerCase()));
-  const real = stored.filter((e) => new Date(e.ends || e.starts) > Date.now() - 6 * 3600_000);
-  const seeded = seededEvents().filter((e) => (e.status === "announced" || real.length < 3) && !realIds.has(e.title.toLowerCase()));
-  // The found Detty December opening replaces our hand-entered copy of it.
-  const foundOpening = real.some((e) => /detty december fest/i.test(e.title) && e.starts.slice(0, 10) === "2026-12-18");
-  return [...seeded.filter((e) => !(foundOpening && e.id === "ddf-2026-opening")), ...real];
-}
-
 /** [method, path pattern, handler(ctx)] — :name segments become ctx.params. */
-const routes = [
+const core = [
   ["GET", "/api/health", async () => ({ ok: true, store: storeName, qloo: stats })],
 
   ["POST", "/api/auth/signup", async ({ body }) => {
@@ -102,25 +81,20 @@ const routes = [
   }],
 
   ["POST", "/api/places/near", async ({ user, body }) => {
-    const origin = await resolveOrigin(body.stay ?? body.origin);
-    const places = await nearYou({ origin, favourites: user.favourites, kinds: kindsFrom(body.kinds, ["restaurant", "lounge", "club", "bar"]), radius: Math.min(15000, Number(body.radius) || 5000), openNow: Boolean(body.openNow) });
+    const city = cityOf(user);
+    const origin = await resolveOrigin(body.stay ?? body.origin, city.name);
+    const places = await nearYou({ origin, favourites: user.favourites, kinds: kindsFrom(body.kinds, ["restaurant", "lounge", "club", "bar"]), radius: Math.min(15000, Number(body.radius) || 5000), openNow: Boolean(body.openNow), timeZone: city.tz });
     return { origin, places };
   }],
   ["POST", "/api/places/translate", async ({ user, body }) => {
-    const origin = body.stay ? await resolveOrigin(body.stay) : null;
-    return { origin, places: await translateCity({ favourites: user.favourites, city: body.city || "Lagos", origin, kinds: kindsFrom(body.kinds, ["restaurant", "lounge", "bar", "club"]) }) };
+    const city = cityOf(user);
+    const origin = body.stay ? await resolveOrigin(body.stay, city.name) : null;
+    return { origin, places: await translateCity({ favourites: user.favourites, city: body.city || user.city || city.name, origin, kinds: kindsFrom(body.kinds, ["restaurant", "lounge", "bar", "club"]), timeZone: city.tz }) };
   }],
   ["GET", "/api/places/tonight", async ({ query }) => {
     const venueId = query.get("venueId");
     if (!venueId) throw new HttpError("Which venue are you at? Send venueId.", 400);
     return tonight({ venueId, kinds: kindsFrom(query.get("kinds"), ["restaurant"]) });
-  }],
-
-  ["GET", "/api/events", async ({ user, query }) => ({ events: await eventsForYou({ favourites: user.favourites, events: await allEvents(), from: query.get("from"), to: query.get("to") }) })],
-  ["GET", "/api/events/:id/after", async ({ user, params }) => {
-    const ev = (await allEvents()).find((e) => e.id === params.id);
-    if (!ev) throw new HttpError("No such event.", 404);
-    return { event: ev.title, places: await afterTheShow({ event: ev, favourites: user.favourites }) };
   }],
 
   ["POST", "/api/checkin", async ({ user, body }) => {
@@ -144,32 +118,13 @@ const routes = [
   ["POST", "/api/block", async ({ user, body }) => (await people.block(user, body.userId), { blocked: true })],
   ["POST", "/api/report", async ({ user, body }) => (await people.report(user, body.userId, body.reason), { reported: true, blocked: true })],
   ["GET", "/api/share-night", async ({ user }) => people.shareMyNight(user)],
-
-  // The daily events search. Called by a scheduler with the admin token.
-  ["POST", "/api/admin/refresh-events", async ({ req }) => {
-    const want = process.env.ADMIN_TOKEN;
-    if (!want || req.headers.authorization !== `Bearer ${want}`) throw new HttpError("Not allowed.", 403);
-    return refreshLagosEvents();
-  }],
-  ["GET", "/api/organiser/dashboard", async ({ user, query }) => {
-    if (user.role !== "organiser") throw new HttpError("This view is for event organisers and venues.", 403);
-    const mine = (await allEvents()).filter((e) => e.ownerId === user.id || e.status === "announced");
-    return dashboard({ days: Math.min(30, Number(query.get("days")) || 7), events: mine });
-  }],
-  ["POST", "/api/organiser/events", async ({ user, body }) => {
-    if (user.role !== "organiser") throw new HttpError("Only organisers can add events.", 403);
-    const title = String(body.title || "").trim().slice(0, 120);
-    const lineup = (Array.isArray(body.lineup) ? body.lineup : []).map((s) => String(s).trim()).filter(Boolean).slice(0, 20);
-    const starts = new Date(body.starts), ends = new Date(body.ends || body.starts);
-    const lat = Number(body.venue?.lat), lon = Number(body.venue?.lon);
-    if (!title || !lineup.length || isNaN(starts) || isNaN(ends) || ends < starts || !Number.isFinite(lat) || !Number.isFinite(lon)) {
-      throw new HttpError("An event needs a title, a lineup, start and end times, and a venue with lat and lon.", 400);
-    }
-    return { event: await put("events", { title, kind: body.kind || "event", status: "listed", ownerId: user.id, starts: starts.toISOString(), ends: ends.toISOString(), venue: { name: String(body.venue.name || "Venue").slice(0, 80), lat, lon }, lineup }) };
-  }],
 ];
 
-const PUBLIC = new Set(["/api/health", "/api/auth/signup", "/api/search", "/api/admin/refresh-events", "/api/avatar-options"]);
+const corePublic = ["/api/health", "/api/auth/signup", "/api/search", "/api/avatar-options"];
+
+// Core first, so GET /api/places/tonight still wins over /api/places/:id.
+const routes = [...core, ...cityMap.routes, ...venue.routes];
+const PUBLIC = new Set([...corePublic, ...cityMap.publicPaths, ...venue.publicPaths]);
 
 function match(method, path) {
   for (const [m, pattern, fn] of routes) {
@@ -195,7 +150,7 @@ export async function handle(req, res) {
     if (!hit) return send(404, { error: "No such endpoint." });
     const body = ["POST", "PUT", "PATCH"].includes(req.method) ? await readJson(req) : {};
     const user = PUBLIC.has(hit.pattern) ? null : await currentUser(req);
-    if (user && !PUBLIC.has(hit.pattern) && /^\/api\/(places\/(near|translate)|events)/.test(hit.pattern) && !user.favourites?.length) {
+    if (user && !PUBLIC.has(hit.pattern) && /^\/api\/(places\/(near|translate)|events|map)/.test(hit.pattern) && !user.favourites?.length) {
       throw new HttpError("Add a few things you love first, so picks can match your taste.", 409);
     }
     return send(200, await hit.fn({ req, body, user, params: hit.params, query: url.searchParams }));

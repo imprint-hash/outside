@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 process.env.OUTSIDE_STORE = join(mkdtempSync(join(tmpdir(), "outside-vet-")), "store.json");
 process.env.QLOO_BASE_URL = "http://127.0.0.1:9"; // venue lookups fail fast; areas are used instead
-const { vetEvents } = await import("../src/lagos-events.js");
+const { vetEvents } = await import("../src/city-events.js");
 
 const now = new Date("2026-10-23T12:00:00+01:00");
 const seen = new Set(["https://a.example/ok"]);

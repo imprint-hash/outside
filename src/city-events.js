@@ -18,6 +18,7 @@ import { createHash } from "node:crypto";
 import { findEntity } from "./qloo.js";
 import { LAGOS_AREAS, inLagos } from "./geo.js";
 import { list, put, remove } from "./store.js";
+import { seededEvents } from "./events.js";
 
 const MODEL = "claude-opus-5-5";
 const HORIZON_DAYS = 120;
@@ -171,4 +172,21 @@ export async function refreshLagosEvents({ now = new Date(), client } = {}) {
   for (const e of kept) await put("events", e);
   const total = (await list("events", (e) => e.status === "found")).length;
   return { kept: kept.length, expired, total, dropped, usage };
+}
+
+/**
+ * Every event we know, moved here from the router (Coder A turns it into
+ * eventsInCity). Real events first: ones found by the daily search and ones
+ * organisers add. The hand-written examples only fill in while fewer than
+ * three real events are known; the announced Detty December opening night
+ * always stays.
+ */
+export async function allEvents() {
+  const stored = await list("events");
+  const realIds = new Set(stored.map((e) => e.title.toLowerCase()));
+  const real = stored.filter((e) => new Date(e.ends || e.starts) > Date.now() - 6 * 3600_000);
+  const seeded = seededEvents().filter((e) => (e.status === "announced" || real.length < 3) && !realIds.has(e.title.toLowerCase()));
+  // The found Detty December opening replaces our hand-entered copy of it.
+  const foundOpening = real.some((e) => /detty december fest/i.test(e.title) && e.starts.slice(0, 10) === "2026-12-18");
+  return [...seeded.filter((e) => !(foundOpening && e.id === "ddf-2026-opening")), ...real];
 }

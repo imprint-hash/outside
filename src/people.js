@@ -21,7 +21,7 @@ import { entityById, shortName } from "./places.js";
 import { distanceM, localClock } from "./geo.js";
 import { cleanAvatar } from "./avatar.js";
 import { avatarOf } from "./auth.js";
-import { zoneFor } from "./hours.js";
+import { cityOf, cityNamed, cityNear } from "./cities.js";
 
 export class RuleError extends Error {
   constructor(message, status = 403) {
@@ -55,9 +55,17 @@ export async function setVisibility(user, visibility) {
   return put("users", { ...user, visibility });
 }
 
-async function profileOf(user) {
+/** Where you are now: a city you picked, or the one nearest your location. */
+export async function setCity(user, { city, lat, lon } = {}) {
+  const c = city ? cityNamed(city) : Number.isFinite(lat) && Number.isFinite(lon) ? cityNear({ lat, lon }) : null;
+  if (!c) throw new RuleError(city ? `Outside doesn't cover ${String(city).slice(0, 40)} yet. Pick a city from the list.` : "We couldn't place you in a city we cover. Pick one from the list.", 400);
+  return put("users", { ...user, city: c.name });
+}
+
+/** Taste is compared in the city both people are in, since the place picks are local. */
+async function profileOf(user, city = cityOf(user).name) {
   if (!user.favourites?.length) return null;
-  return buildProfile(user.favourites);
+  return buildProfile(user.favourites, { city });
 }
 
 /* ---------- check-in ---------- */
@@ -72,7 +80,7 @@ function untilSixAm(now, timeZone) {
 export async function checkIn(user, venueId, now = new Date()) {
   const venue = await entityById(venueId);
   if (!venue.location) throw new RuleError("That place has no location on record, so you can't check in there.", 422);
-  const expiresAt = new Date(now.getTime() + untilSixAm(now, zoneFor(venue, "UTC")) * 60_000).toISOString();
+  const expiresAt = new Date(now.getTime() + untilSixAm(now, cityOf(user).tz) * 60_000).toISOString();
   // One check-in at a time: a new one replaces the old.
   for (const c of await list("checkins", (c) => c.userId === user.id && !c.endedAt, { userId: user.id })) await put("checkins", { ...c, endedAt: now.toISOString() });
   return put("checkins", {
@@ -151,7 +159,7 @@ export async function whoIsHere(viewer, now = new Date()) {
   for (const c of others) {
     const u = await get("users", c.userId);
     if (!u || (await blocked(viewer.id, u.id))) continue;
-    const theirs = await profileOf(u);
+    const theirs = await profileOf(u, cityOf(viewer).name);
     const cmp = myProfile && theirs ? compareProfiles(myProfile, theirs, { namesA: viewer.favourites.map((f) => f.name), namesB: u.favourites.map((f) => f.name) }) : { match: null, because: { bothLove: [], music: [], places: [], wouldGoTo: [] } };
     if (u.visibility === "groups" && (cmp.match ?? 0) >= 50) groupMinded++;
     if (!allowedToSee(viewer, u, cmp.match ?? 0)) continue;
@@ -301,6 +309,6 @@ export async function getMeetup(user, meetupId, now = new Date()) {
 export async function shareMyNight(user, now = new Date()) {
   const c = await myCheckin(user, now);
   if (!c) throw new RuleError("Check in somewhere first.", 409);
-  const at = new Date(c.at).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", timeZone: "Africa/Lagos" });
+  const at = new Date(c.at).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", timeZone: cityOf(user).tz });
   return { text: `I'm at ${c.venueName} tonight (since ${at}). Checking in with you via Outside.`, venue: c.venueName, location: c.venueLocation };
 }
