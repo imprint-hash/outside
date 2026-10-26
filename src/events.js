@@ -39,8 +39,11 @@ const artistsOf = (ev) => ev.lineup?.length ? ev.lineup : ev.sound || [];
  */
 export async function eventsForYou({ favourites, events, from = null, to = null }) {
   const pool = events.filter((ev) => (!from || new Date(ev.ends || ev.starts) >= new Date(from)) && (!to || new Date(ev.starts) <= new Date(to)));
+  // Found events carry their artists' Qloo ids, resolved once when found,
+  // so a page load doesn't search for every name again.
+  const resolved = Object.assign({}, ...pool.map((ev) => ev.artistIds || {}));
   const names = [...new Set(pool.flatMap(artistsOf))];
-  const ids = Object.fromEntries(await Promise.all(names.map(async (n) => [n, await artistId(n)])));
+  const ids = Object.fromEntries(await Promise.all(names.map(async (n) => [n, Object.hasOwn(resolved, n) ? resolved[n] : await artistId(n)])));
   const scores = favourites?.length ? await scoreArtists(favourites, Object.values(ids).filter(Boolean)) : {};
 
   return pool
@@ -70,8 +73,15 @@ export async function eventsForYou({ favourites, events, from = null, to = null 
 }
 
 /** After the show: places near the venue, open when it ends, that fit you. */
-export async function afterTheShow({ event, favourites, kinds = ["restaurant", "lounge", "bar"], limit = 4 }) {
+export async function afterTheShow({ event, favourites, kinds = ["restaurant", "lounge", "bar"], limit = 4, timeZone }) {
   const end = new Date(event.ends || event.starts);
-  const places = await nearYou({ origin: { lat: event.venue.lat, lon: event.venue.lon }, favourites, kinds, radius: 3000, limit: 12, now: end, openNow: true });
+  const places = await nearYou({ origin: { lat: event.venue.lat, lon: event.venue.lon }, favourites, kinds, radius: 3000, limit: 12, now: end, openNow: true, timeZone });
+  return places.filter((p) => p.hours.known).slice(0, limit);
+}
+
+/** Before the show: somewhere to eat near the venue, open two hours before it starts. */
+export async function beforeTheShow({ event, favourites, kinds = ["restaurant"], limit = 4, timeZone }) {
+  const at = new Date(new Date(event.starts).getTime() - 2 * 3600_000);
+  const places = await nearYou({ origin: { lat: event.venue.lat, lon: event.venue.lon }, favourites, kinds, radius: 3000, limit: 12, now: at, openNow: true, timeZone });
   return places.filter((p) => p.hours.known).slice(0, limit);
 }

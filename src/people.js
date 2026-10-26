@@ -66,7 +66,7 @@ export async function setCity(user, { city, lat, lon } = {}) {
   const c = city ? cityNamed(city) : Number.isFinite(lat) && Number.isFinite(lon) ? cityNear({ lat, lon }) : null;
   if (!c) throw new RuleError(city ? `Outside doesn't cover ${String(city).slice(0, 40)} yet. Pick a city from the list.` : "We couldn't place you in a city we cover. Pick one from the list.", 400);
   const stay = user.stay && distanceM(user.stay, c) <= STAY_MAX_M ? user.stay : null;
-  return put("users", { ...user, city: c.name, stay });
+  return put("users", { ...user, city: c.name, stay, updatedAt: new Date().toISOString() });
 }
 
 /** Where you're staying in your city: a hotel or area name, or a point. */
@@ -75,7 +75,7 @@ export async function setStay(user, stay) {
   const p = await resolveOrigin(stay, city.name);
   if (distanceM(p, city) > STAY_MAX_M) throw new RuleError(`That's outside ${city.name}. Change your city first.`, 422);
   const saved = { lat: p.lat, lon: p.lon, label: String(p.label || "Your location").slice(0, 80) };
-  return put("users", { ...user, stay: saved });
+  return put("users", { ...user, stay: saved, updatedAt: new Date().toISOString() });
 }
 
 /** Taste is compared in the city both people are in, since the place picks are local. */
