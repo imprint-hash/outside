@@ -22,7 +22,7 @@ import { randomUUID } from "node:crypto";
 
 export const newId = () => randomUUID();
 
-const COLLECTIONS = ["users", "checkins", "hellos", "messages", "meetups", "blocks", "reports", "events", "reviews", "searches", "profiles"];
+const COLLECTIONS = ["users", "checkins", "hellos", "messages", "meetups", "blocks", "reports", "events", "reviews", "searches", "profiles", "qcache"];
 
 export class StoreError extends Error {
   constructor(message) {
