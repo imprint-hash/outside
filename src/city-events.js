@@ -250,14 +250,42 @@ export async function allEvents({ now = new Date() } = {}) {
 
 const HOUR = 3600_000;
 
+const RUNNING_MS = 10 * 60_000;
+/** Searches running in this process, by city slug, so callers at the same moment share one. */
+const inFlight = new Map();
+
 /**
  * Run one city's search and keep its marker (searches/<slug>) up to date:
  * "running" while it goes, then "done" or "failed". The cron, the admin call
- * and ensureFresh all go through here, so they never double up.
+ * and ensureFresh all go through here, so they never double up: a search
+ * already running in this process is shared, and a "running" marker under
+ * 10 minutes old (another instance) is left alone unless `force` is set.
  */
-export async function searchAndMark(cityName, { now = new Date(), refresh = refreshCityEvents, client, marker } = {}) {
+export function searchAndMark(cityName, opts = {}) {
   const city = cityOrThrow(cityName);
+  const running = runningHere(city.slug);
+  if (running) return running;
+  const p = runSearch(city, opts).finally(() => { if (inFlight.get(city.slug)?.p === p) inFlight.delete(city.slug); });
+  inFlight.set(city.slug, { p, since: Date.now() });
+  return p;
+}
+
+/** This process's search for a city, unless it has hung for over 10 minutes. */
+function runningHere(slug) {
+  const x = inFlight.get(slug);
+  if (x && Date.now() - x.since < RUNNING_MS) return x.p;
+  inFlight.delete(slug);
+  return null;
+}
+
+/** Forget searches running in this process (tests start each case clean). */
+export const forgetRunningSearches = () => inFlight.clear();
+
+async function runSearch(city, { now = new Date(), refresh = refreshCityEvents, client, marker, force = false } = {}) {
   const prev = marker === undefined ? await get("searches", city.slug) : marker;
+  if (!force && prev?.status === "running" && now - new Date(prev.startedAt) < RUNNING_MS) {
+    return { city: city.name, skipped: true, reason: "A search for this city is already running." };
+  }
   const base = { id: city.slug, city: city.name, startedAt: now.toISOString(), lastSearchAt: prev?.lastSearchAt ?? null, kept: prev?.kept ?? null };
   await put("searches", { ...base, status: "running", lastError: null });
   try {
@@ -283,6 +311,7 @@ export async function ensureFresh(cityName, { now = new Date(), waitMs = 8000, r
   const age = (iso) => (iso ? now - new Date(iso) : Infinity);
   const firstSearch = !marker?.lastSearchAt && !(await list("events", (e) => e.status === "found" && (e.city || "Lagos") === city.name)).length;
   const status = { lastSearchAt: marker?.lastSearchAt ?? null, refreshing: false, firstSearch };
+  if (runningHere(city.slug)) return { ...status, refreshing: true };
 
   if (marker?.status === "done" && age(marker.lastSearchAt) < 24 * HOUR) return status;
   if (marker?.status === "running" && age(marker.startedAt) < 10 * 60_000) return { ...status, refreshing: true };

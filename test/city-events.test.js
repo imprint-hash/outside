@@ -24,7 +24,7 @@ const store = await import("../src/store.js");
 const ce = await import("../src/city-events.js");
 const { cityNamed } = await import("../src/cities.js");
 after(async () => { await stub.close(); rmSync(dir, { recursive: true, force: true }); });
-beforeEach(() => store.reset());
+beforeEach(() => { ce.forgetRunningSearches(); return store.reset(); });
 
 const london = cityNamed("London"), lagos = cityNamed("Lagos");
 const now = new Date("2026-10-30T12:00:00Z");

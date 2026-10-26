@@ -46,7 +46,7 @@ const placeFits = (p, rule) => {
 export function kindsFor(kinds = Object.keys(MAP_KINDS)) {
   const list = (Array.isArray(kinds) ? kinds : String(kinds || "").split(",")).map((k) => k.trim().toLowerCase()).filter(Boolean);
   const bad = list.filter((k) => !MAP_KINDS[k]);
-  if (bad.length) throw new HttpError(`Unknown kind: ${bad.join(", ")}. Use ${Object.keys(MAP_KINDS).join(", ")}.`, 400);
+  if (bad.length) throw new HttpError(`Unknown kind: ${bad.join(", ").slice(0, 40)}. Use ${Object.keys(MAP_KINDS).join(", ")}.`, 400);
   const use = list.length ? [...new Set(list)] : Object.keys(MAP_KINDS);
   return {
     kinds: use,

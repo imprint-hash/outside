@@ -94,6 +94,7 @@ function listOf(names) {
  */
 export async function resolveOrigin(input, city = "Lagos") {
   if (input && typeof input === "object" && Number.isFinite(input.lat) && Number.isFinite(input.lon)) {
+    if (Math.abs(input.lat) > 90 || Math.abs(input.lon) > 180) throw new QlooError("That location doesn't look right.", 400);
     return { lat: input.lat, lon: input.lon, label: input.label || "Your location" };
   }
   const text = String(input || "").trim();

@@ -25,8 +25,8 @@ const pointFrom = (query) => {
 const bearer = (req, secret) => Boolean(secret) && req.headers.authorization === `Bearer ${secret}`;
 
 /** Every city's search, side by side; one failing doesn't stop the others. */
-async function refreshAll(cities) {
-  const settled = await Promise.allSettled(cities.map((c) => searchAndMark(c)));
+async function refreshAll(cities, { force = false } = {}) {
+  const settled = await Promise.allSettled(cities.map((c) => searchAndMark(c, { force })));
   return settled.map((s, i) => (s.status === "fulfilled" ? s.value : { city: cities[i], error: String(s.reason?.message || s.reason) }));
 }
 
@@ -95,7 +95,7 @@ export const routes = [
   ["POST", "/api/admin/refresh-events", async ({ req, body }) => {
     if (!bearer(req, process.env.ADMIN_TOKEN)) throw new HttpError("Not allowed.", 403);
     if (body.city && !cityNamed(body.city)) throw new HttpError(`Outside doesn't cover ${String(body.city).slice(0, 40)} yet.`, 400);
-    return { results: await refreshAll(body.city ? [body.city] : await activeCities()) };
+    return { results: await refreshAll(body.city ? [body.city] : await activeCities(), { force: body.force === true }) };
   }],
   // The daily events search, called by the host's scheduler.
   ["GET", "/api/cron/events", async ({ req }) => {
