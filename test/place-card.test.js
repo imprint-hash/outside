@@ -84,7 +84,7 @@ test("crowd, our ratings and what you can do", async () => {
   assert.equal(c.crowd.here, 1);
   assert.equal(c.crowd.likeYou, 0);
   assert.deepEqual(c.you, { checkedInHere: true, verifiedHere: true, canSayHi: true, canReview: true, reviewedToday: false });
-  assert.deepEqual(c.ours.overall, { avg: 4, count: 1 });
+  assert.deepEqual(c.ours.overall, { avg: 4, count: 1, demo: 0 });
   assert.equal(c.ours.notes[0].note, "Get the daal");
   assert.ok(c.place.trip);
   assert.ok(!/firstName|"Other"|"userId"/.test(JSON.stringify(c)));

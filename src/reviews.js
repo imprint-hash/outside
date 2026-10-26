@@ -102,10 +102,13 @@ const round1 = (x) => Math.round(x * 10) / 10;
  * Two ratings and a few notes, from a place's reviews. Pure.
  * `similarity(review)` gives the viewer's match with that reviewer: a number,
  * null, or { match, because } where `because` is a short shared-taste line.
+ * `demo` in overall and likeYou counts the labelled demo reviews inside `count`.
  */
 export function summarize(reviews, { viewerId = null, similarity = () => null } = {}) {
   const all = Array.isArray(reviews) ? reviews : [];
-  const overall = all.length ? { avg: round1(all.reduce((s, r) => s + r.stars, 0) / all.length), count: all.length } : { avg: null, count: 0 };
+  const overall = all.length
+    ? { avg: round1(all.reduce((s, r) => s + r.stars, 0) / all.length), count: all.length, demo: all.filter((r) => r.demo).length }
+    : { avg: null, count: 0, demo: 0 };
 
   // One vote per person in "people like you": their latest review.
   const latest = new Map();
@@ -114,7 +117,7 @@ export function summarize(reviews, { viewerId = null, similarity = () => null } 
     if (!prev || String(r.at ?? "") > String(prev.at ?? "")) latest.set(r.userId, r);
   }
 
-  let sumW = 0, sumWS = 0, count = 0;
+  let sumW = 0, sumWS = 0, count = 0, demo = 0;
   const notes = [];
   for (const r of latest.values()) {
     if (viewerId && r.userId === viewerId) continue;
@@ -126,6 +129,7 @@ export function summarize(reviews, { viewerId = null, similarity = () => null } 
       sumW += w;
       sumWS += w * r.stars;
       count++;
+      if (r.demo) demo++;
     }
     if (r.note) notes.push({ stars: r.stars, note: r.note, match, because, at: r.at, demo: !!r.demo });
   }
@@ -133,7 +137,7 @@ export function summarize(reviews, { viewerId = null, similarity = () => null } 
 
   return {
     overall,
-    likeYou: { avg: count && sumW > 0 ? round1(sumWS / sumW) : null, count, enough: count >= 2 },
+    likeYou: { avg: count && sumW > 0 ? round1(sumWS / sumW) : null, count, demo, enough: count >= 2 },
     notes: notes.slice(0, 5),
   };
 }

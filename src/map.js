@@ -56,7 +56,7 @@ export function kindsFor(kinds = Object.keys(MAP_KINDS)) {
 }
 
 export const eventKindOf = (ev) => (EVENT_KINDS.has(ev.kind) ? ev.kind : "other");
-const countsOf = (c) => (c ? { here: c.here, likeYou: c.likeYou, strong: c.strong, plumbob: c.plumbob } : { here: 0, likeYou: 0, strong: 0, plumbob: null });
+const countsOf = (c) => (c ? { here: c.here, likeYou: c.likeYou, strong: c.strong, demo: c.demo || 0, plumbob: c.plumbob } : { here: 0, likeYou: 0, strong: 0, demo: 0, plumbob: null });
 
 /** The whole map for one viewer. */
 export async function mapFor(viewer, { when = "tonight", kinds, origin = null, now = new Date(), waitMs } = {}) {

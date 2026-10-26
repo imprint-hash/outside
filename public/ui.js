@@ -103,9 +103,10 @@ export const compact = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 
 export function ratingPill({ all = null, ours = null, flat = false } = {}) {
   const parts = [];
   const oc = ours?.overall?.count || 0;
-  if (all != null) parts.push(`<span class="all">All <b>${all.toFixed(1)} ★</b>${oc ? `<i>(+${compact(oc)} on Outside)</i>` : ""}</span>`);
-  else if (ours?.overall?.avg != null) parts.push(`<span class="all">All <b>${ours.overall.avg.toFixed(1)} ★</b><i>(${compact(oc)})</i></span>`);
-  if (ours?.likeYou?.enough && ours.likeYou.avg != null) parts.push(`<span class="yours">${icon("star", "fill")}Your taste ${ours.likeYou.avg.toFixed(1)} ★</span>`);
+  const od = demoCount(ours?.overall?.demo);
+  if (all != null) parts.push(`<span class="all">All <b>${all.toFixed(1)} ★</b>${oc ? `<i>(+${compact(oc)} on Outside${od})</i>` : ""}</span>`);
+  else if (ours?.overall?.avg != null) parts.push(`<span class="all">All <b>${ours.overall.avg.toFixed(1)} ★</b><i>(${compact(oc)}${od})</i></span>`);
+  if (ours?.likeYou?.enough && ours.likeYou.avg != null) parts.push(`<span class="yours">${icon("star", "fill")}Your taste ${ours.likeYou.avg.toFixed(1)} ★${ours.likeYou.demo ? `<i>(${ours.likeYou.demo} demo)</i>` : ""}</span>`);
   return parts.length ? `<div class="rating${flat ? " flat" : ""}">${parts.join("")}</div>` : "";
 }
 
@@ -144,6 +145,8 @@ export function facesRow(faces = [], total = 0, max = 3) {
 }
 
 export const demoTag = (x) => (x?.demo ? `<span class="tag tag-demo">Demo</span>` : "");
+/** " · 2 demo" after a count that includes labelled demo people or reviews; "" when none. */
+export const demoCount = (n) => (n ? ` · ${n} demo` : "");
 export const isDemoName = (name) => /^Demo\s*·/.test(String(name || ""));
 
 export { api, esc, avatarSVG, PLUMBOB };

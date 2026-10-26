@@ -77,7 +77,8 @@ test("a venue with check-ins shows even when Qloo's list misses it; Lagos exampl
   const ronnie = m.venues.find((v) => v.id === "ronnie");
   assert.equal(ronnie.match, null);
   assert.equal(ronnie.crowd.here, 1);
-  assert.deepEqual(m.venues.find((v) => v.id === "dishoom").crowd, { here: 0, likeYou: 0, strong: 0, plumbob: null });
+  assert.equal(ronnie.crowd.demo, 0, "the map carries the demo count so screens can label it");
+  assert.deepEqual(m.venues.find((v) => v.id === "dishoom").crowd, { here: 0, likeYou: 0, strong: 0, demo: 0, plumbob: null });
 
   const seeded = new Set(seededEvents().map((e) => e.id));
   assert.ok(m.events.length >= 1);

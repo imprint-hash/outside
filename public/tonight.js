@@ -3,7 +3,7 @@
 // for a popover, open it for the full card. Everything shown comes from the
 // API; missing fields are left out.
 import { api, esc, needSignIn } from "/api.js";
-import { $, icon, topbar, setHelloCount, ratingPill, facesRow, tripText, hoursFact, timeIn, dayIn, toast, sheetOpen, closeSheet, PLUMBOB } from "/ui.js";
+import { $, icon, topbar, setHelloCount, ratingPill, facesRow, tripText, hoursFact, timeIn, dayIn, toast, sheetOpen, closeSheet, PLUMBOB, demoTag, demoCount } from "/ui.js";
 import { openPlace, openEvent, getCard, checkIn, cardCache } from "/card.js";
 import { openHere, openInbox, openChat, openSettings, openRate, pollInbox } from "/social.js";
 
@@ -132,8 +132,8 @@ function placePopup(v, card) {
       ${summary ? `<p class="muted clamp3" style="font-size:12px;line-height:18px">${esc(summary)}</p>` : ""}
     </div>
     <div class="tiles">
-      <div><b>${like}</b><small>Like you here now</small></div>
-      ${v.trip ? `<div><b class="amber">${v.trip.minutes}m</b><small>${v.trip.mode === "walk" ? "Walk" : "Drive"} away</small></div>` : `<div><b class="amber">${v.crowd?.here || 0}</b><small>Checked in</small></div>`}
+      <div><b>${like}</b><small>Like you here now${demoCount(v.crowd?.demo)}</small></div>
+      ${v.trip ? `<div><b class="amber">${v.trip.minutes}m</b><small>${v.trip.mode === "walk" ? "Walk" : "Drive"} away</small></div>` : `<div><b class="amber">${v.crowd?.here || 0}</b><small>Checked in${demoCount(v.crowd?.demo)}</small></div>`}
     </div>
     <button class="btn btn-mint btn-block btn-sm" type="button" data-open-place="${esc(v.id)}">${icon("open_in_full")}Open place</button>
   </div>`;
@@ -149,7 +149,7 @@ function eventPopup(e) {
       ${top.length ? `<div class="kw">${top.map((a) => `<div class="kw-row"><span>${esc(a.name)}${a.youLove ? " · you love them" : ""}</span><span class="n">${a.fit}%</span><span class="bar"><i style="width:${a.fit}%"></i></span></div>`).join("")}</div>` : `<p class="faint">Qloo doesn't know this lineup yet.</p>`}
     </div>
     <div class="tiles">
-      <div><b>${e.crowd?.likeYou ?? 0}</b><small>Like you at the venue</small></div>
+      <div><b>${e.crowd?.likeYou ?? 0}</b><small>Like you at the venue${demoCount(e.crowd?.demo)}</small></div>
       <div><b class="amber">${esc(timeIn(e.starts, tz))}</b><small>${esc(dayIn(e.starts, tz).wd)} · ${esc(e.venue?.name || "")}</small></div>
     </div>
     <button class="btn btn-mint btn-block btn-sm" type="button" data-open-event="${esc(e.id)}">${icon("open_in_full")}Open event</button>
@@ -229,7 +229,7 @@ function featureVenue(v0) {
   return `<article class="card feature" tabindex="0" data-key="place:${esc(v.id)}" aria-label="${esc(v.name)}">
     <div class="media">
       ${v.image ? `<img src="${esc(v.image)}" alt="" loading="lazy">` : `<div class="media-blank">${icon(KIND_ICON[v.category] || "storefront")}</div>`}
-      <span class="tl glass-tag">${icon(v.crowd?.likeYou ? "groups" : "verified")}${v.crowd?.likeYou ? "Your people are here" : esc(v.fit || CAT_NAME[v.category] || "Place")}</span>
+      <span class="tl glass-tag">${icon(v.crowd?.likeYou ? "groups" : "verified")}${v.crowd?.likeYou ? `Your people are here${demoCount(v.crowd.demo)}` : esc(v.fit || CAT_NAME[v.category] || "Place")}</span>
       <span class="tr">${ratingPill({ all: v.rating, ours: card?.ours })}</span>
       ${v.trip ? `<span class="br glass-tag amber">${icon(v.trip.mode === "walk" ? "directions_walk" : "directions_car")}${esc(tripText(v.trip))}</span>` : ""}
     </div>
@@ -241,7 +241,7 @@ function featureVenue(v0) {
       ${v.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${v.match}% match</span><span class="what">Your taste</span></div>${v.why ? `<p>${esc(v.why)}</p>` : ""}</div></div>` : ""}
       ${roomHtml(v.crowd, faces)}
       ${facts ? `<div class="facts">${facts}</div>` : ""}
-      ${quote ? `<blockquote class="quote">${icon("format_quote")}<span>“${esc(quote.note)}”${quote.because ? ` <span class="faint">· ${esc(quote.because)}</span>` : ""}</span></blockquote>` : ""}
+      ${quote ? `<blockquote class="quote">${icon("format_quote")}<span>“${esc(quote.note)}”${quote.because ? ` <span class="faint">· ${esc(quote.because)}</span>` : ""} ${demoTag(quote)}</span></blockquote>` : ""}
       <div class="actions">
         <button class="btn btn-mint btn-stack" type="button" data-act="ride">${icon("local_taxi")}Ride there</button>
         <button class="btn btn-stack" type="button" data-act="checkin">${icon("location_on", "mint")}${state.checkin?.venueId === v.id ? "Checked in" : "Check in"}</button>
@@ -260,7 +260,7 @@ function compactVenue(v) {
     <div class="body">
       <div class="head"><h3>${esc(v.name)}</h3>${v.match != null ? `<span class="tag tag-mint">${v.match}% match</span>` : ""}</div>
       ${meta ? `<p class="meta">${meta}${v.trip ? ` · ${esc(tripText(v.trip))}` : ""}</p>` : v.trip ? `<p class="meta">${esc(tripText(v.trip))}</p>` : ""}
-      ${hasStats ? `<div class="statline"><span>${v.rating != null ? `All: ${v.rating.toFixed(1)} ★` : ""}</span>${v.crowd?.likeYou ? `<span class="crowd">${v.crowd.likeYou} like you here</span>` : v.crowd?.here ? `<span class="faint">${v.crowd.here} checked in</span>` : ""}</div>` : ""}
+      ${hasStats ? `<div class="statline"><span>${v.rating != null ? `All: ${v.rating.toFixed(1)} ★` : ""}</span>${v.crowd?.likeYou ? `<span class="crowd">${v.crowd.likeYou} like you here${demoCount(v.crowd.demo)}</span>` : v.crowd?.here ? `<span class="faint">${v.crowd.here} checked in${demoCount(v.crowd.demo)}</span>` : ""}</div>` : ""}
       ${v.hours?.known ? `<div class="facts">${hoursFact(v.hours)}</div>` : ""}
       <div class="row-actions">
         <button class="btn btn-sm" type="button" data-act="open">${icon("info")}Details</button>
@@ -279,7 +279,7 @@ function eventRow(e) {
       <div class="head" style="display:flex;justify-content:space-between;gap:8px"><h3>${esc(e.title)}</h3>${e.fit != null ? `<span class="tag tag-mint">${e.fit}%</span>` : ""}</div>
       <p class="meta muted" style="font-size:12px">${esc(e.venue?.name || "")}${e.venue?.approximate ? " (location approximate)" : ""} · ${esc(timeIn(e.starts, tz))}</p>
       ${e.why ? `<p class="faint" style="font-size:12px;line-height:18px">${esc(e.why)}</p>` : ""}
-      ${e.crowd?.likeYou ? `<span class="tag tag-amber">${e.crowd.likeYou} like you at the venue</span>` : ""}
+      ${e.crowd?.likeYou ? `<span class="tag tag-amber">${e.crowd.likeYou} like you at the venue${demoCount(e.crowd.demo)}</span>` : ""}
     </div>
   </article>`;
 }

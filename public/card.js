@@ -2,7 +2,7 @@
 // phones). Qloo's review data, our two ratings, who's here (faces, no
 // names), ride links, check in.
 import { api, esc } from "/api.js";
-import { icon, openSheet, onSheetClose, toast, ratingPill, hoursFact, tripText, timeIn, dayIn, stars, avatarSVG, whereAmI, demoTag, compact } from "/ui.js";
+import { icon, openSheet, onSheetClose, toast, ratingPill, hoursFact, tripText, timeIn, dayIn, stars, avatarSVG, whereAmI, demoTag, demoCount, compact } from "/ui.js";
 
 export const cardCache = new Map();
 
@@ -110,8 +110,8 @@ function placeHtml(ctx, c, { ride }) {
       <section class="panel" aria-label="Ratings">
         <h3>${icon("star")}Ratings</h3>
         <div class="bigrate">
-          <div><b>${q.rating != null ? `${q.rating.toFixed(1)} ★` : "–"}</b><small>Everyone${ours.overall?.count ? ` · plus ${ours.overall.count} on Outside (${ours.overall.avg.toFixed(1)} ★)` : ""}</small></div>
-          <div class="yt"><b>${ours.likeYou?.enough && ours.likeYou.avg != null ? `${ours.likeYou.avg.toFixed(1)} ★` : "–"}</b><small>${ours.likeYou?.enough ? `People with your taste · ${ours.likeYou.count}` : ours.likeYou?.count ? `Only ${ours.likeYou.count} rating from people like you so far` : "No ratings from people like you yet"}</small></div>
+          <div><b>${q.rating != null ? `${q.rating.toFixed(1)} ★` : "–"}</b><small>Everyone${ours.overall?.count ? ` · plus ${ours.overall.count} on Outside (${ours.overall.avg.toFixed(1)} ★)${demoCount(ours.overall.demo)}` : ""}</small></div>
+          <div class="yt"><b>${ours.likeYou?.enough && ours.likeYou.avg != null ? `${ours.likeYou.avg.toFixed(1)} ★` : "–"}</b><small>${ours.likeYou?.enough ? `People with your taste · ${ours.likeYou.count}${demoCount(ours.likeYou.demo)}` : ours.likeYou?.count ? `Only ${ours.likeYou.count} rating from people like you so far${demoCount(ours.likeYou.demo)}` : "No ratings from people like you yet"}</small></div>
         </div>
       </section>
 

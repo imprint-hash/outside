@@ -81,14 +81,27 @@ test("summarize: weighted 'like you' average, own review left out, no names", ()
   ];
   const sims = { a: { match: 100, because: "Loves Tems · Afrobeats" }, b: 70, c: 39, d: null, me: 100 };
   const s = reviews.summarize(rs, { viewerId: "me", similarity: (r) => sims[r.userId] });
-  assert.deepEqual(s.overall, { avg: 2.4, count: 5 });
+  assert.deepEqual(s.overall, { avg: 2.4, count: 5, demo: 0 });
   // LIKE_YOU 40: w(a) = 70/70 = 1, w(b) = 40/70 → (5 + 3·0.571) / 1.571 = 4.27; c at 39 is below the line
-  assert.deepEqual(s.likeYou, { avg: 4.3, count: 2, enough: true });
+  assert.deepEqual(s.likeYou, { avg: 4.3, count: 2, demo: 0, enough: true });
   assert.deepEqual(s.notes.map((n) => n.note), ["Loved it", "Fine", "Too loud"]);
   assert.equal(s.notes[0].because, "Loves Tems · Afrobeats");
   const text = JSON.stringify(s);
   assert.ok(!/Secret|"userId"|firstName|"me"/.test(text));
   const one = reviews.summarize(rs.slice(0, 2), { viewerId: "me", similarity: (r) => sims[r.userId] });
   assert.equal(one.likeYou.enough, false);
-  assert.deepEqual(reviews.summarize([], {}).likeYou, { avg: null, count: 0, enough: false });
+  assert.deepEqual(reviews.summarize([], {}).likeYou, { avg: null, count: 0, demo: 0, enough: false });
+});
+
+test("summarize: counts demo reviews in overall and 'like you' so screens can label them", () => {
+  const rs = [
+    { userId: "demo-a", stars: 5, note: "Demo note", at: "1", demo: true },
+    { userId: "b", stars: 3, at: "2" },
+    { userId: "demo-c", stars: 4, at: "3", demo: true },
+  ];
+  const s = reviews.summarize(rs, { similarity: (r) => (r.userId === "demo-c" ? 10 : 80) });
+  assert.equal(s.overall.demo, 2);
+  assert.equal(s.likeYou.count, 2);
+  assert.equal(s.likeYou.demo, 1);
+  assert.equal(s.notes[0].demo, true);
 });
