@@ -16,6 +16,8 @@ import { shortName } from "./places.js";
 import { cityNamed, cityNear } from "./cities.js";
 import { nextLocalHour } from "./geo.js";
 import { localDay } from "./reviews.js";
+import { hashPassword } from "./auth.js";
+import { randomBytes } from "node:crypto";
 
 const NAME = "Demo · ";
 const DEMO = /^demo-/;
@@ -90,6 +92,10 @@ export async function seedDemo({ cityName = "London", now = new Date() } = {}) {
   if (!city) throw new Error(`Unknown city: ${cityName}`);
   const venues = await resolveVenues([...new Set([...DEMO_VENUES, ...DEMO_USERS.map((u) => u.venue)])], city);
 
+  // Demo accounts sign in like anyone else: DEMO_PASSWORD when set, else a random one nobody knows.
+  const fromEnv = (process.env.DEMO_PASSWORD || "").length >= 8;
+  const password = fromEnv ? process.env.DEMO_PASSWORD : randomBytes(18).toString("base64url");
+
   const users = [], missing = {};
   for (const d of DEMO_USERS) {
     const { favourites, missing: miss } = await resolveFavourites(d.taste.map(([type, name]) => ({ type, name })));
@@ -98,6 +104,7 @@ export async function seedDemo({ cityName = "London", now = new Date() } = {}) {
     const u = await put("users", {
       id: userId(d.slug),
       email: `${d.slug}@demo.outside.invalid`,
+      passwordHash: hashPassword(password),
       firstName: d.firstName,
       homeCity: city.name,
       city: city.name,
@@ -137,6 +144,7 @@ export async function seedDemo({ cityName = "London", now = new Date() } = {}) {
   await put("users", {
     id: "demo-venue",
     email: "venue@demo.outside.invalid",
+    passwordHash: hashPassword(password),
     firstName: `${NAME}${venue.name}`,
     homeCity: city.name,
     city: city.name,
@@ -155,7 +163,7 @@ export async function seedDemo({ cityName = "London", now = new Date() } = {}) {
   });
 
   const matrix = await matchMatrix(users.map((x) => x.u), city.name);
-  return { city: city.name, users: users.length, organisers: 1, checkins, reviews, venues: Object.fromEntries(Object.entries(venues).map(([k, v]) => [k, v.id])), missing, matrix };
+  return { city: city.name, password: fromEnv ? "set from DEMO_PASSWORD" : "random", users: users.length, organisers: 1, checkins, reviews, venues: Object.fromEntries(Object.entries(venues).map(([k, v]) => [k, v.id])), missing, matrix };
 }
 
 /** Pairwise likeness between demo users: { slugs, rows[i][j] }. */

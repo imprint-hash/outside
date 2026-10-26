@@ -47,6 +47,8 @@ async function call(method, path, { token, body } = {}) {
   return { status: res.status, ...json };
 }
 
+const PW = `pw-${RUN}-long-enough`;
+let QUILOX_AT = {}; // the venue's own location, for verified check-ins
 const T = {}; // tokens
 const U = {}; // user ids
 const people = {
@@ -65,21 +67,23 @@ test("the whole night, end to end", { skip: !LIVE, timeout: 600_000 }, async (t)
     assert.equal(nope.status, 401);
     assert.match(nope.error, /sign in|session/i);
     assert.equal((await call("GET", "/api/nowhere")).status, 404);
-    assert.equal((await call("POST", "/api/auth/signup", { body: { email: "not-an-email", firstName: "X" } })).status, 400);
+    assert.equal((await call("POST", "/api/auth/signup", { body: { email: "not-an-email", password: PW, firstName: "X" } })).status, 400);
   });
 
   await t.test("sign up, and picks wait until you've added your taste", async () => {
     for (const [k, p] of Object.entries(people)) {
-      const r = await call("POST", "/api/auth/signup", { body: { email: p.email, firstName: p.firstName, homeCity: p.homeCity } });
+      const r = await call("POST", "/api/auth/signup", { body: { email: p.email, password: PW, firstName: p.firstName, homeCity: p.homeCity } });
       assert.equal(r.status, 200, r.error);
       T[k] = r.token;
       U[k] = r.user.id;
     }
-    const again = await call("POST", "/api/auth/signup", { body: { email: `ME+${RUN}@test.dev` } });
+    const again = await call("POST", "/api/auth/signup", { body: { email: `ME+${RUN}@test.dev`, password: PW } });
     assert.equal(again.returning, true);
+    assert.equal((await call("POST", "/api/auth/signup", { body: { email: `me+${RUN}@test.dev`, password: "wrong-password" } })).status, 401);
+    assert.equal((await call("POST", "/api/auth/login", { body: { email: `me+${RUN}@test.dev`, password: PW } })).user.id, U.me);
     const early = await call("POST", "/api/places/near", { token: T.me, body: { stay: "Eko Hotel" } });
     assert.equal(early.status, 409);
-    const org = await call("POST", "/api/auth/signup", { body: { email: `org+${RUN}@test.dev`, firstName: "Promoter", organiser: true } });
+    const org = await call("POST", "/api/auth/signup", { body: { email: `org+${RUN}@test.dev`, password: PW, firstName: "Promoter", organiser: true } });
     T.org = org.token;
     U.org = org.user.id;
   });
@@ -126,6 +130,7 @@ test("the whole night, end to end", { skip: !LIVE, timeout: 600_000 }, async (t)
     const tn = await call("GET", `/api/places/tonight?venueId=${quilox.id}&kinds=restaurant,lounge`, { token: T.me });
     assert.equal(tn.status, 200, tn.error);
     assert.equal(tn.venue.name, "Quilox");
+    QUILOX_AT = { lat: tn.venue.location.lat, lon: tn.venue.location.lon };
     assert.ok(tn.places.every((p) => p.id !== quilox.id));
     assert.ok(tn.places.every((p) => p.hours.open || p.hours.opensIn <= 30), "only places open now or about to open");
   });
@@ -145,7 +150,11 @@ test("the whole night, end to end", { skip: !LIVE, timeout: 600_000 }, async (t)
   });
 
   await t.test("who's here follows everyone's visibility choice", async () => {
-    for (const k of Object.keys(people)) assert.equal((await call("POST", "/api/checkin", { token: T[k], body: { venueId: U.quilox } })).status, 200);
+    for (const k of Object.keys(people)) {
+      const r = await call("POST", "/api/checkin", { token: T[k], body: { venueId: U.quilox, ...QUILOX_AT } });
+      assert.equal(r.status, 200, r.error);
+      assert.equal(r.checkin.verified, true, `${k} checked in at the venue's location`);
+    }
     const here = await call("GET", "/api/here", { token: T.me });
     assert.equal(here.status, 200, here.error);
     const names = here.people.map((p) => p.firstName);

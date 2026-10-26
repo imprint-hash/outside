@@ -5,7 +5,7 @@
  */
 
 import { QlooError, searchEntities, stats, prettyName } from "./qloo.js";
-import { AuthError, signUp, userFromToken, selfView } from "./auth.js";
+import { AuthError, signUp, logIn, userFromToken, selfView } from "./auth.js";
 import { resolveOrigin, nearYou, translateCity, tonight, CATEGORIES } from "./places.js";
 import * as people from "./people.js";
 import { get, put, storeName, StoreError } from "./store.js";
@@ -28,11 +28,14 @@ async function readJson(req) {
     chunks.push(c);
   }
   if (!chunks.length) return {};
+  let body;
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
   } catch {
     throw new HttpError("The request body isn't valid JSON.", 400);
   }
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new HttpError("The request body must be a JSON object.", 400);
+  return body;
 }
 
 async function currentUser(req) {
@@ -43,7 +46,7 @@ async function currentUser(req) {
 const kindsFrom = (v, fallback) => {
   const ks = (Array.isArray(v) ? v : String(v || "").split(",")).map((k) => k.trim()).filter(Boolean);
   const bad = ks.filter((k) => !CATEGORIES[k]);
-  if (bad.length) throw new HttpError(`Unknown kind: ${bad.join(", ")}. Use ${Object.keys(CATEGORIES).join(", ")}.`, 400);
+  if (bad.length) throw new HttpError(`Unknown kind: ${bad.join(", ").slice(0, 40)}. Use ${Object.keys(CATEGORIES).join(", ")}.`, 400);
   return ks.length ? ks : fallback;
 };
 
@@ -53,8 +56,13 @@ const core = [
 
   ["POST", "/api/auth/signup", async ({ body }) => {
     const { user, token, returning } = await signUp(body);
-    if (body.organiser === true && !user.role) await put("users", { ...user, role: "organiser" });
+    // Only a brand-new account can ask to be an organiser.
+    if (returning === false && body.organiser === true) await put("users", { ...user, role: "organiser" });
     return { token, returning, user: selfView(await get("users", user.id)) };
+  }],
+  ["POST", "/api/auth/login", async ({ body }) => {
+    const { user, token } = await logIn(body);
+    return { token, returning: true, user: selfView(user) };
   }],
   ["GET", "/api/me", async ({ user }) => ({ user: selfView(user), checkin: await people.myCheckin(user) })],
   ["POST", "/api/me/taste", async ({ user, body }) => {
@@ -98,8 +106,10 @@ const core = [
   }],
 
   ["POST", "/api/checkin", async ({ user, body }) => {
-    if (!body.venueId) throw new HttpError("Which venue? Send venueId.", 400);
-    return { checkin: await people.checkIn(user, body.venueId) };
+    if (!body.venueId || typeof body.venueId !== "string") throw new HttpError("Which venue? Send venueId.", 400);
+    const at = body.lat == null && body.lon == null ? null : { lat: Number(body.lat), lon: Number(body.lon) };
+    if (at && (!Number.isFinite(at.lat) || !Number.isFinite(at.lon) || Math.abs(at.lat) > 90 || Math.abs(at.lon) > 180)) throw new HttpError("That location doesn't look right.", 400);
+    return { checkin: await people.checkIn(user, body.venueId, new Date(), at) };
   }],
   ["GET", "/api/checkin", async ({ user }) => ({ checkin: await people.myCheckin(user) })],
   ["DELETE", "/api/checkin", async ({ user }) => (await people.checkOut(user), { checkedOut: true })],
@@ -120,11 +130,19 @@ const core = [
   ["GET", "/api/share-night", async ({ user }) => people.shareMyNight(user)],
 ];
 
-const corePublic = ["/api/health", "/api/auth/signup", "/api/search", "/api/avatar-options"];
+const corePublic = ["/api/health", "/api/auth/signup", "/api/auth/login", "/api/search", "/api/avatar-options"];
 
 // Core first, so GET /api/places/tonight still wins over /api/places/:id.
 const routes = [...core, ...cityMap.routes, ...venue.routes];
 const PUBLIC = new Set([...corePublic, ...cityMap.publicPaths, ...venue.publicPaths]);
+
+function decodeSegment(seg) {
+  try {
+    return decodeURIComponent(seg);
+  } catch {
+    throw new HttpError("That address has a broken %-escape in it.", 400);
+  }
+}
 
 function match(method, path) {
   for (const [m, pattern, fn] of routes) {
@@ -132,7 +150,7 @@ function match(method, path) {
     const a = pattern.split("/"), b = path.split("/");
     if (a.length !== b.length) continue;
     const params = {};
-    if (a.every((seg, i) => (seg.startsWith(":") ? ((params[seg.slice(1)] = decodeURIComponent(b[i])), true) : seg === b[i]))) return { fn, params, pattern };
+    if (a.every((seg, i) => (seg.startsWith(":") ? ((params[seg.slice(1)] = decodeSegment(b[i])), true) : seg === b[i]))) return { fn, params, pattern };
   }
   return null;
 }

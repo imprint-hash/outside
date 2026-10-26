@@ -30,6 +30,7 @@ try {
   } else {
     const r = await seedDemo({ cityName: value("city", "London") });
     console.log(`City: ${r.city}`);
+    console.log(`Demo password: ${r.password}`);
     console.log(`Users: ${r.users} (+${r.organisers} demo venue account), check-ins: ${r.checkins}, reviews: ${r.reviews}`);
     console.log("Venues:");
     for (const [name, id] of Object.entries(r.venues)) console.log(`  ${name.padEnd(20)} ${id}`);

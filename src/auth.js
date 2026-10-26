@@ -1,14 +1,16 @@
 /**
  * Accounts and sessions.
  *
- * Sign-up takes an email and a first name; a session is a signed token the
- * app sends back on every call. Email ownership is not proven yet (that comes
- * with the hosted login), so new accounts are "unverified", and anyone who
- * chooses "only verified people can see me" is hidden from them.
+ * Sign-up takes an email, a password and a first name; a session is a signed
+ * token the app sends back on every call. Passwords are kept only as a salted
+ * scrypt hash. Signing up again with an existing email needs that account's
+ * password, so nobody can take over an account by typing its email. Email
+ * ownership is not proven yet, so new accounts are "unverified", and anyone
+ * who chooses "only verified people can see me" is hidden from them.
  */
 
 import "./env.js";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual, scryptSync, randomBytes } from "node:crypto";
 import { get, put, list } from "./store.js";
 import { DEFAULT_AVATAR } from "./avatar.js";
 
@@ -48,16 +50,42 @@ export async function userFromToken(token) {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** Sign up, or sign back in with the same email. */
-export async function signUp({ email, firstName, homeCity }) {
+export const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 200;
+
+/** "scrypt$<salt>$<hash>", both base64url. */
+export function hashPassword(password) {
+  const salt = randomBytes(16);
+  return `scrypt$${salt.toString("base64url")}$${scryptSync(String(password), salt, 32).toString("base64url")}`;
+}
+
+export function checkPassword(password, stored) {
+  const [kind, salt, hash] = String(stored || "").split("$");
+  if (kind !== "scrypt" || !salt || !hash || typeof password !== "string" || password.length > PASSWORD_MAX) return false;
+  const want = Buffer.from(hash, "base64url");
+  const got = scryptSync(password, Buffer.from(salt, "base64url"), want.length);
+  return want.length === got.length && timingSafeEqual(want, got);
+}
+
+const DUMMY = hashPassword(randomBytes(12).toString("hex"));
+const WRONG = "That email already has an account. Enter its password.";
+
+/** Sign up, or sign back in with the same email and its password. */
+export async function signUp({ email, password, firstName, homeCity } = {}) {
   const mail = String(email || "").trim().toLowerCase();
   const name = String(firstName || "").trim().slice(0, 30);
   if (!EMAIL.test(mail)) throw new AuthError("Enter a valid email address.", 400);
   const existing = (await list("users", (u) => u.email === mail))[0];
-  if (existing) return { user: existing, token: issueToken(existing.id), returning: true };
+  if (existing) {
+    if (!checkPassword(password, existing.passwordHash)) throw new AuthError(WRONG, 401);
+    return { user: existing, token: issueToken(existing.id), returning: true };
+  }
+  if (typeof password !== "string" || password.length < PASSWORD_MIN) throw new AuthError(`Choose a password of at least ${PASSWORD_MIN} characters.`, 400);
+  if (password.length > PASSWORD_MAX) throw new AuthError("That password is too long.", 400);
   if (!name) throw new AuthError("Tell us your first name.", 400);
   const user = await put("users", {
     email: mail,
+    passwordHash: hashPassword(password),
     firstName: name,
     homeCity: String(homeCity || "").trim().slice(0, 40) || null,
     verified: false,
@@ -67,6 +95,15 @@ export async function signUp({ email, firstName, homeCity }) {
     createdAt: new Date().toISOString(),
   });
   return { user, token: issueToken(user.id), returning: false };
+}
+
+/** Sign in with email and password. */
+export async function logIn({ email, password } = {}) {
+  const mail = String(email || "").trim().toLowerCase();
+  const user = mail ? (await list("users", (u) => u.email === mail))[0] : null;
+  const ok = checkPassword(password, user?.passwordHash || DUMMY); // same work whether or not the email exists
+  if (!user || !ok) throw new AuthError("That email and password don't match.", 401);
+  return { user, token: issueToken(user.id), returning: true };
 }
 
 /** What a person may see about themselves. Never the hash of anything secret. */
