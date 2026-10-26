@@ -37,11 +37,21 @@ async function recentCheckinsAt(user, placeId, now) {
   return rows.sort((a, b) => b.at.localeCompare(a.at));
 }
 
+// Common link endings, beyond the obvious ones; spammers like the cheap ones.
+const TLDS = "com|net|org|io|co|uk|ng|app|xyz|ly|me|ru|cn|tk|gg|info|biz|link|site|online|top|club|shop|live|store|tv|cc|ws|pw|su|to|in|de|fr|us|ga|ml|cf|gq";
+const LINK = new RegExp(`(https?:\\/\\/|www\\.|\\b[a-z0-9-]+\\.[a-z]{2,}\\/|\\b[a-z0-9-]+\\.(${TLDS})\\b)`, "i");
+
 function cleanNote(note) {
-  // eslint-disable-next-line no-control-regex
-  const text = String(note ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  if (note == null) return "";
+  if (typeof note !== "string") throw new ReviewError("A note must be plain text.", 400);
+  const text = note
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "") // zero-width and right-to-left tricks
+    .replace(/\s+/g, " ")
+    .trim();
   if (text.length > NOTE_MAX) throw new ReviewError(`Keep it to ${NOTE_MAX} characters.`, 400);
-  if (/(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|co|uk|ng|app|xyz|ly|me)\b)/i.test(text)) throw new ReviewError("No links in reviews, please.", 400);
+  if (LINK.test(text)) throw new ReviewError("No links in reviews, please.", 400);
   return text;
 }
 
@@ -56,8 +66,8 @@ export async function reviewStatus(user, placeId, now = new Date()) {
 
 export async function addReview(user, { placeId, stars, note } = {}, now = new Date()) {
   if (!placeId || typeof placeId !== "string") throw new ReviewError("Which place? Send placeId.", 400);
-  const n = Number(stars);
-  if (!Number.isInteger(n) || n < 1 || n > 5) throw new ReviewError("Stars must be a whole number from 1 to 5.", 400);
+  const n = stars;
+  if (typeof n !== "number" || !Number.isInteger(n) || n < 1 || n > 5) throw new ReviewError("Stars must be a whole number from 1 to 5.", 400);
   const text = cleanNote(note);
   const [latest] = await recentCheckinsAt(user, placeId, now);
   if (!latest) throw new ReviewError("Check in there first; you can rate a place for 48 hours after.", 403);
@@ -97,9 +107,16 @@ export function summarize(reviews, { viewerId = null, similarity = () => null } 
   const all = Array.isArray(reviews) ? reviews : [];
   const overall = all.length ? { avg: round1(all.reduce((s, r) => s + r.stars, 0) / all.length), count: all.length } : { avg: null, count: 0 };
 
+  // One vote per person in "people like you": their latest review.
+  const latest = new Map();
+  for (const r of all) {
+    const prev = latest.get(r.userId);
+    if (!prev || String(r.at ?? "") > String(prev.at ?? "")) latest.set(r.userId, r);
+  }
+
   let sumW = 0, sumWS = 0, count = 0;
   const notes = [];
-  for (const r of all) {
+  for (const r of latest.values()) {
     if (viewerId && r.userId === viewerId) continue;
     const sim = similarity(r);
     const match = sim && typeof sim === "object" ? sim.match ?? null : sim ?? null;
@@ -110,7 +127,7 @@ export function summarize(reviews, { viewerId = null, similarity = () => null } 
       sumWS += w * r.stars;
       count++;
     }
-    if (r.note) notes.push({ stars: r.stars, note: r.note, match, because, at: r.at });
+    if (r.note) notes.push({ stars: r.stars, note: r.note, match, because, at: r.at, demo: !!r.demo });
   }
   notes.sort((a, b) => (b.match ?? -1) - (a.match ?? -1) || String(b.at).localeCompare(String(a.at)));
 
