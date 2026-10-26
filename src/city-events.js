@@ -28,6 +28,8 @@ import { HttpError } from "./http.js";
 const MODEL = "claude-opus-5-5";
 const HORIZON_DAYS = 120;
 const VENUE_MAX_M = 50_000;
+// A big city has hundreds of listings; a longer answer gets cut off mid-list.
+const MAX_EVENTS = 60;
 
 /** "UTC+01:00" for a time zone on a given day ("UTC+00:00" for London in winter). */
 export function utcOffset(timeZone, now = new Date()) {
@@ -66,7 +68,7 @@ const schemaFor = (city, offset) => ({
 export function eventPrompt(city, today, now = new Date()) {
   const offset = utcOffset(city.tz, now);
   const lagos = city.name === "Lagos" ? " Detty December events matter most." : "";
-  return `Today is ${today}. Find real, upcoming events in ${city.name}, ${city.country} (local time is ${offset}): concerts, club nights with named DJs, festivals, and comedy shows. Most of all the next 14 days; up to ${HORIZON_DAYS}.${lagos}
+  return `Today is ${today}. Find real, upcoming events in ${city.name}, ${city.country} (local time is ${offset}): concerts, club nights with named DJs, festivals, and comedy shows. Most of all the next 14 days; up to ${HORIZON_DAYS}.${lagos} List at most ${MAX_EVENTS} events, soonest first.
 
 Search the web, then list each event once with its title, start date and time, venue, the neighbourhood or district of ${city.name}, the artists, DJs or comedians named on the bill, and the link of the page you took the details from. If only the date is known, use 20:00 local time.
 
@@ -97,7 +99,7 @@ export async function searchCityEvents(city, { now = new Date(), client = new An
   for (let turn = 0; turn < 4; turn++) {
     response = await client.beta.messages.create({
       model: MODEL,
-      max_tokens: 16000,
+      max_tokens: 20000, // the SDK refuses non-streamed requests much above 21k
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "medium", format: { type: "json_schema", schema } },
