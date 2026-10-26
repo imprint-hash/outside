@@ -29,11 +29,11 @@ const EMPTY_WORDS = /^(food|service|staff|place|price|prices|ambience|atmosphere
 const PRICE = { 1: "$", 2: "$$", 3: "$$$", 4: "$$$$" };
 
 /** What reviewers keep mentioning, most-mentioned first. */
-function saying(keywords) {
+export function saying(keywords, limit = 4) {
   return (Array.isArray(keywords) ? keywords : [])
     .filter((k) => k?.name && !EMPTY_WORDS.test(k.name.trim()) && (k.count ?? 0) >= 3)
     .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
-    .slice(0, 4)
+    .slice(0, limit)
     .map((k) => ({ text: k.name.trim(), mentions: k.count }));
 }
 
@@ -199,6 +199,20 @@ export async function entityById(id) {
   const e = r.results?.[0];
   if (!e) throw new QlooError("That place could not be found.", 404);
   return e;
+}
+
+/**
+ * One place with everything Qloo knows about it. Only /v2/insights carries the
+ * review data (keywords, service/ambience/crowd summaries); /search and
+ * /entities are slim. Asked with no signal, since a signal makes this call
+ * come back empty. Falls back to /entities if insights has nothing.
+ */
+export async function placeFull(id) {
+  if (!id) throw new QlooError("Which place? Send its id.", 400);
+  const r = await insights({ "filter.type": "urn:entity:place", "filter.results.entities": id, take: 1 });
+  const e = (r.entities || []).find((x) => x.entity_id === id) || r.entities?.[0];
+  if (e) return e;
+  return entityById(id);
 }
 
 /**
