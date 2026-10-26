@@ -4,18 +4,67 @@
  */
 
 import { HttpError } from "../http.js";
-import { allEvents } from "../city-events.js";
-import { dashboard } from "../organiser.js";
+import { eventsInCity } from "../city-events.js";
+import { cityDashboard, venueDashboard } from "../organiser.js";
+import { placeCard } from "../place-card.js";
+import { addReview, pendingReviews } from "../reviews.js";
+import { entityById, shortName } from "../places.js";
+import { renewDemoCheckins } from "../demo.js";
+import { findEntity } from "../qloo.js";
 import { put } from "../store.js";
+import { cityOf, cityNear } from "../cities.js";
+
+const bearer = (req, secret) => Boolean(secret) && req.headers.authorization === `Bearer ${secret}`;
+
+const organiserOnly = (user, message = "This view is for event organisers and venues.") => {
+  if (user.role !== "organiser") throw new HttpError(message, 403);
+};
+
+/** ?lat&lon if both are numbers, else where the user is staying, else none. */
+function originFrom(query, user) {
+  const lat = Number(query.get("lat")), lon = Number(query.get("lon"));
+  if (query.get("lat") !== null && query.get("lon") !== null && Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) return { lat, lon };
+  return user.stay && Number.isFinite(user.stay.lat) ? { lat: user.stay.lat, lon: user.stay.lon } : null;
+}
 
 export const routes = [
-  ["GET", "/api/organiser/dashboard", async ({ user, query }) => {
-    if (user.role !== "organiser") throw new HttpError("This view is for event organisers and venues.", 403);
-    const mine = (await allEvents()).filter((e) => e.ownerId === user.id || e.status === "announced");
-    return dashboard({ days: Math.min(30, Number(query.get("days")) || 7), events: mine });
+  ["GET", "/api/places/:id", async ({ user, params, query }) => {
+    const m = query.get("match");
+    return placeCard(user, params.id, { origin: originFrom(query, user), match: m === null || m === "" ? null : Number(m) });
   }],
+
+  ["POST", "/api/reviews", async ({ user, body }) => ({ review: await addReview(user, { placeId: body.placeId, stars: body.stars, note: body.note }) })],
+  ["GET", "/api/reviews/pending", async ({ user }) => ({ pending: await pendingReviews(user) })],
+
+  ["POST", "/api/organiser/venue", async ({ user, body }) => {
+    organiserOnly(user, "Only organisers and venues can pick a venue.");
+    if (!body.venueId || typeof body.venueId !== "string") throw new HttpError("Which venue? Send venueId.", 400);
+    const e = await entityById(body.venueId);
+    if (!e.location) throw new HttpError("That place has no location on record.", 422);
+    const venue = { id: e.entity_id, name: shortName(e.name), location: { lat: e.location.lat, lon: e.location.lon } };
+    await put("users", { ...user, venueId: venue.id, venueName: venue.name, venueLocation: venue.location, venueCity: cityNear(venue.location)?.name ?? cityOf(user).name });
+    return { venue };
+  }],
+
+  ["GET", "/api/organiser/dashboard", async ({ user, query }) => {
+    organiserOnly(user);
+    const cityName = user.venueCity || cityOf(user).name;
+    const days = Number(query.get("days")) || 0;
+    const want = String(query.get("want") || "").trim().slice(0, 80) || null;
+    const mine = (await eventsInCity(cityName)).filter((e) => e.ownerId === user.id || e.status === "announced");
+    const [venue, city] = await Promise.all([
+      user.venueId ? venueDashboard({ venueId: user.venueId, cityName, days: Math.min(90, days || 28), want }) : null,
+      cityDashboard({ days: Math.min(30, days || 7), events: mine, cityName }),
+    ]);
+    return {
+      venue: venue && { id: user.venueId, name: user.venueName || null, ...venue },
+      city,
+      events: mine.map((e) => ({ id: e.id, title: e.title, starts: e.starts, ends: e.ends, venue: e.venue, lineup: e.lineup, status: e.status, city: e.city })),
+    };
+  }],
+
   ["POST", "/api/organiser/events", async ({ user, body }) => {
-    if (user.role !== "organiser") throw new HttpError("Only organisers can add events.", 403);
+    organiserOnly(user, "Only organisers can add events.");
     const title = String(body.title || "").trim().slice(0, 120);
     const lineup = (Array.isArray(body.lineup) ? body.lineup : []).map((s) => String(s).trim()).filter(Boolean).slice(0, 20);
     const starts = new Date(body.starts), ends = new Date(body.ends || body.starts);
@@ -23,8 +72,15 @@ export const routes = [
     if (!title || !lineup.length || isNaN(starts) || isNaN(ends) || ends < starts || !Number.isFinite(lat) || !Number.isFinite(lon)) {
       throw new HttpError("An event needs a title, a lineup, start and end times, and a venue with lat and lon.", 400);
     }
-    return { event: await put("events", { title, kind: body.kind || "event", status: "listed", ownerId: user.id, starts: starts.toISOString(), ends: ends.toISOString(), venue: { name: String(body.venue.name || "Venue").slice(0, 80), lat, lon }, lineup }) };
+    const artistIds = Object.fromEntries(await Promise.all(lineup.map(async (n) => [n, (await findEntity(n, "urn:entity:artist").catch(() => null))?.entity_id ?? null])));
+    const city = cityNear({ lat, lon })?.name ?? user.city ?? cityOf(user).name;
+    return { event: await put("events", { title, kind: body.kind || "event", status: "listed", ownerId: user.id, city, starts: starts.toISOString(), ends: ends.toISOString(), venue: { name: String(body.venue.name || "Venue").slice(0, 80), lat, lon }, lineup, artistIds }) };
+  }],
+
+  ["GET", "/api/cron/demo", async ({ req }) => {
+    if (!bearer(req, process.env.CRON_SECRET)) throw new HttpError("Not allowed.", 403);
+    return { renewed: await renewDemoCheckins() };
   }],
 ];
 
-export const publicPaths = [];
+export const publicPaths = ["/api/cron/demo"];
