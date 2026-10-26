@@ -110,7 +110,7 @@ test("the whole night, end to end", { skip: !LIVE, timeout: 600_000 }, async (t)
       assert.ok(p.trip && p.trip.minutes > 0, `${p.name} trip`);
       assert.ok("known" in p.hours, `${p.name} hours`);
       assert.doesNotMatch(p.name, /church|school|university|hospital/i);
-      assert.match(p.why, /People who love/);
+      assert.match(p.why, /^Fits your taste for /);
     }
     const area = await call("POST", "/api/places/near", { token: T.me, body: { stay: "Lekki Phase 1", kinds: ["lounge"] } });
     assert.equal(area.status, 200, area.error);

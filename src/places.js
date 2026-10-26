@@ -56,8 +56,46 @@ export function shortName(name) {
   return cut.length >= 3 ? cut : String(name || "").trim();
 }
 
-/** A place as the app shows it. `because` names the things the match was built from. */
-export function shapePlace(e, { origin, now = new Date(), timeZone, because = [] } = {}) {
+// Reviewer words that say nothing about why this place suits you.
+const DULL_FOR_WHY = /staff|service|clean|toilet|cloakroom|queue|price|value|parking|portion|friendly|polite|helpful|^(music|venue|club|bar|pub|restaurant|drinks|night|nightclub|lounge)$/i;
+
+/** A cuisine Qloo tags a restaurant with ("Nigerian"), or null. */
+function cuisineOf(tags) {
+  const t = (Array.isArray(tags) ? tags : []).find((x) => /^urn:tag:genre:place:restaurant:/.test(x?.id || "") && x.name && !/^(restaurant|bar|lounge|night ?club)$/i.test(x.name.trim()));
+  return t ? t.name.trim() : null;
+}
+
+/**
+ * Why this place, in one line, built only from Qloo's answer for it:
+ * - which of your favourites drove the match (Qloo's explainability scores,
+ *   strongest first), else the favourites the search was signalled with;
+ * - then one detail Qloo holds for this place: what reviewers mention most,
+ *   else its cuisine (restaurants) or ambience (bars, lounges, clubs).
+ * `signals` are the { id, name } things the search was signalled with.
+ */
+export function whyLine(e, signals = [], { lead = (names) => `Fits your taste for ${names}` } = {}) {
+  if (!signals.length) return null;
+  const nameOf = new Map(signals.map((s) => [s.id, s.name]));
+  const scores = (e.query?.explainability?.["signal.interests.entities"] || [])
+    .filter((x) => nameOf.has(x.entity_id) && (x.score ?? 0) > 0)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  // The favourites that carried it: the top one, plus any close behind (within 60% of it).
+  const drivers = scores.length
+    ? scores.filter((x, i) => i === 0 || x.score >= scores[0].score * 0.6).slice(0, 2).map((x) => nameOf.get(x.entity_id))
+    : [...new Set(signals.map((s) => s.name))].slice(0, 3);
+  const p = e.properties || {};
+  const word = saying(p.keywords, 8).find((k) => !DULL_FOR_WHY.test(k.text));
+  const cuisine = e.kind === "restaurant" || !e.kind ? cuisineOf(e.tags) : null;
+  const mood = vibe(e.tags).find((v) => !/music|going|interest/i.test(v));
+  const detail = word ? `reviewers mention "${word.text}"` : cuisine ? `${cuisine} food` : mood ? `${mood.toLowerCase()} feel, per Qloo` : null;
+  return [lead(listOf(drivers)), detail].filter(Boolean).join(" · ");
+}
+
+/**
+ * A place as the app shows it. `signals` are the { id, name } things the
+ * match was built from; `because` (names only) is the older form.
+ */
+export function shapePlace(e, { origin, now = new Date(), timeZone, because = [], signals = null, lead } = {}) {
   const p = e.properties || {};
   const where = e.location ? { lat: e.location.lat, lon: e.location.lon } : null;
   const affinity = e.query?.affinity ?? null;
@@ -78,7 +116,7 @@ export function shapePlace(e, { origin, now = new Date(), timeZone, because = []
     saying: saying(p.keywords),
     vibe: vibe(e.tags),
     match: affinity === null ? null : Math.round(affinity * 100),
-    why: because.length ? `People who love ${listOf(because)} also go here.` : null,
+    why: whyLine(e, signals || because.map((name) => ({ id: null, name })), lead ? { lead } : {}),
   };
 }
 
@@ -121,6 +159,7 @@ async function placesAround({ origin, kinds, signals = [], radius = 5000, take =
         "filter.location.radius": radius,
         "filter.tags": CATEGORIES[k],
         "signal.interests.entities": signals.length ? signals : undefined,
+        "feature.explainability": signals.length ? true : undefined,
         take,
         ...extra,
       }).then((r) => (r.entities || []).map((e) => ({ ...e, kind: k }))),
@@ -165,7 +204,7 @@ function labelFits(places) {
 export async function nearYou({ origin, favourites = [], kinds = ["restaurant", "lounge", "club", "bar"], radius = 5000, limit = 12, now = new Date(), openNow = false, timeZone }) {
   const ids = favourites.map((f) => f.id);
   const found = await placesAround({ origin, kinds, signals: ids, radius });
-  let places = found.map((e) => ({ ...shapePlace(e, { origin, now, timeZone, because: favourites.map((f) => f.name) }), kind: e.kind }));
+  let places = found.map((e) => ({ ...shapePlace(e, { origin, now, timeZone, signals: favourites }), kind: e.kind }));
   if (openNow) places = places.filter((p) => !p.hours.known || p.hours.open);
   return labelFits(places.sort(byTaste).slice(0, limit));
 }
@@ -179,7 +218,7 @@ export async function translateCity({ favourites, city = "Lagos", origin = null,
   const ids = favourites.map((f) => f.id);
   const lists = await Promise.all(
     kinds.map((k) =>
-      insights({ "filter.type": "urn:entity:place", "filter.location.query": city, "filter.tags": CATEGORIES[k], "signal.interests.entities": ids, take: 15 }).then((r) =>
+      insights({ "filter.type": "urn:entity:place", "filter.location.query": city, "filter.tags": CATEGORIES[k], "signal.interests.entities": ids, "feature.explainability": true, take: 15 }).then((r) =>
         (r.entities || []).map((e) => ({ ...e, kind: k })),
       ),
     ),
@@ -188,7 +227,7 @@ export async function translateCity({ favourites, city = "Lagos", origin = null,
   for (const e of lists.flat()) if (!seen.has(e.entity_id)) seen.set(e.entity_id, e);
   const out = [...seen.values()]
     .filter(isNightOut)
-    .map((e) => ({ ...shapePlace(e, { origin, now, timeZone, because: favourites.map((f) => f.name) }), kind: e.kind }))
+    .map((e) => ({ ...shapePlace(e, { origin, now, timeZone, signals: favourites }), kind: e.kind }))
     .sort(byTaste)
     .slice(0, limit);
   return labelFits(out);
@@ -227,7 +266,7 @@ export async function tonight({ venueId, kinds = ["restaurant"], radius = 2500, 
   const found = await placesAround({ origin, kinds, signals: [venueId], radius, take: 25 });
   const places = found
     .filter((e) => e.entity_id !== venueId)
-    .map((e) => ({ ...shapePlace(e, { origin, now, timeZone, because: [venue.name] }), kind: e.kind }))
+    .map((e) => ({ ...shapePlace(e, { origin, now, timeZone, signals: [{ id: venueId, name: shortName(venue.name) }], lead: (names) => `People who go to ${names} also go here` }), kind: e.kind }))
     .filter((p) => p.hours.open || (p.hours.known && p.hours.opensIn != null && p.hours.opensIn <= 30))
     .sort(byTaste)
     .slice(0, limit);
