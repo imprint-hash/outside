@@ -13,6 +13,7 @@
  */
 
 import { qloo, insights, findEntity, QlooError, prettyName } from "./qloo.js";
+import { cityNamed, cityNear } from "./cities.js";
 
 export const TYPES = {
   artist: "urn:entity:artist",
@@ -51,6 +52,25 @@ export async function resolveFavourites(items, { city } = {}) {
   return { favourites: found, missing };
 }
 
+/**
+ * Music tags Qloo attaches to almost everyone (a jazz fan's profile still
+ * carries "trap" and "beats"). They say nothing about a crowd, so screens
+ * leave them out of shared sounds and taste groups. Matching still uses the
+ * full set.
+ */
+const GENERIC_SOUNDS = new Set(["trap", "beats", "instrumental hip hop", "hip hop instrumental", "lo fi", "lofi", "lo fi hip hop", "lofi hip hop", "chillhop", "instrumental", "type beat", "british", "american", "girl group", "boy band", "bts", "music", "songwriter", "singer songwriter"]);
+const soundKey = (t) => String(t || "").toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
+export const isGenericSound = (t) => GENERIC_SOUNDS.has(soundKey(t));
+/** A music list without the low-signal tags. */
+export const signalSounds = (list = []) => (Array.isArray(list) ? list : []).filter((t) => !isGenericSound(t));
+
+/** Is a place Qloo returned for `city` actually in it? Unknown cities, or places with no location, pass only if the city is unknown. */
+export function inCityPick(e, city) {
+  const c = cityNamed(city);
+  if (!c) return true;
+  return Boolean(e?.location && Number.isFinite(e.location.lat) && Number.isFinite(e.location.lon) && cityNear(e.location)?.name === c.name);
+}
+
 const profileCache = new Map();
 
 /** A person's taste, as sets Qloo builds from the things they love. */
@@ -67,7 +87,8 @@ export async function buildProfile(favourites, { city = "Lagos" } = {}) {
     return [name, (r.tags || []).map((t) => t.name?.trim()).filter(Boolean)];
   });
   const picks = insights({ "filter.type": "urn:entity:place", "filter.location.query": city, "filter.tags": "urn:tag:category:place:restaurant,urn:tag:category:place:bar,urn:tag:category:place:lounge,urn:tag:category:place:night_club", "signal.interests.entities": ids, take: 30 })
-    .then((r) => (r.entities || []).map((e) => e.name));
+    // Only places in the city itself: you'd both pick a place you can both walk into tonight.
+    .then((r) => (r.entities || []).filter((e) => inCityPick(e, city)).map((e) => e.name));
 
   const [sets, placePicks] = await Promise.all([Promise.all(tagCalls).then(Object.fromEntries), picks]);
   const profile = { city, favourites: ids, music: sets.music, places: sets.places, screen: sets.screen, picks: placePicks };
@@ -77,7 +98,7 @@ export async function buildProfile(favourites, { city = "Lagos" } = {}) {
 
 const SMALL = new Set(["and", "of", "the", "&", "n"]);
 /** "rhythm & blues" -> "Rhythm & Blues", "afrobeats" -> "Afrobeats"; "R&B", "UK" kept. */
-const tidy = (t) => t.split(" ").map((w, i) => (w === w.toUpperCase() || (i && SMALL.has(w)) ? w : w[0].toUpperCase() + w.slice(1))).join(" ");
+const tidy = (t) => t.replace(/\s+/g, " ").trim().split(" ").map((w, i) => (w === w.toUpperCase() || (i && SMALL.has(w)) ? w : w[0].toUpperCase() + w.slice(1))).join(" ");
 
 const jaccard = (a = [], b = []) => {
   const A = new Set(a.map((x) => x.toLowerCase())), B = new Set(b.map((x) => x.toLowerCase()));
@@ -104,9 +125,11 @@ export function compareProfiles(a, b, { namesA = [], namesB = [] } = {}) {
   let score = weight ? sum / weight : 0;
   score = Math.min(1, score + sharedFavourites * 0.08);
 
+  // Reasons shown to people skip the tags everyone has ("trap", "beats").
+  const shown = (p, part) => (part === "music" ? signalSounds(p[part]) : p[part] || []);
   const shared = (part, top = 25) => {
-    const B = new Set((b[part] || []).slice(0, top).map((x) => x.toLowerCase()));
-    return (a[part] || []).slice(0, top).filter((x) => B.has(x.toLowerCase())).map(tidy);
+    const B = new Set(shown(b, part).slice(0, top).map((x) => x.toLowerCase()));
+    return shown(a, part).slice(0, top).filter((x) => B.has(x.toLowerCase())).map(tidy);
   };
   const lovedByBoth = namesA.filter((n) => namesB.map((x) => x.toLowerCase()).includes(n.toLowerCase()));
   return {

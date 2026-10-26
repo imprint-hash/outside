@@ -12,6 +12,7 @@ import { list, get } from "./store.js";
 import { profileFor } from "./likeness.js";
 import { eventsForYou } from "./events.js";
 import { insights, findEntity } from "./qloo.js";
+import { signalSounds, isGenericSound } from "./taste.js";
 import { cityNamed, cityOf } from "./cities.js";
 
 export const MIN_GROUP = 3;
@@ -30,7 +31,7 @@ export function tally(values) {
 
 const SMALL = new Set(["and", "of", "the", "&", "n"]);
 /** "rhythm & blues" → "Rhythm & Blues"; "R&B", "UK" kept. */
-export const tidy = (t) => String(t).split(" ").map((w, i) => (!w || w === w.toUpperCase() || (i && SMALL.has(w)) ? w : w[0].toUpperCase() + w.slice(1))).join(" ");
+export const tidy = (t) => String(t).replace(/\s+/g, " ").trim().split(" ").map((w, i) => (!w || w === w.toUpperCase() || (i && SMALL.has(w)) ? w : w[0].toUpperCase() + w.slice(1))).join(" ");
 
 /** The weekday ("Mon"…"Sun") of an instant in a time zone. */
 export function weekdayIn(date, timeZone) {
@@ -67,7 +68,7 @@ export async function cityDashboard({ days = 7, events = [], now = new Date(), c
 
   const some = users.slice(0, 300);
   const profiles = await profilesOf(some, cityName || undefined);
-  const music = tally(some.flatMap((u) => (profiles.get(u.id)?.music || []).slice(0, 5)));
+  const music = tally(some.flatMap((u) => signalSounds(profiles.get(u.id)?.music).slice(0, 5).map(tidy)));
   const homeCities = tally(users.map((u) => u.homeCity));
   const venues = tally(recentCheckins.map((c) => c.venueName));
 
@@ -130,12 +131,13 @@ export async function venueDashboard({ venueId, cityName, days = 28, want = null
     return {
       day,
       checkins: cs.length,
-      topSounds: tally(people.flatMap((u) => (profiles.get(u.id)?.music || []).slice(0, 5).map(tidy))),
+      topSounds: tally(people.flatMap((u) => signalSounds(profiles.get(u.id)?.music).slice(0, 5).map(tidy))),
       topLoves: tally(people.flatMap((u) => [...new Set((u.favourites || []).map((f) => f.name))])),
     };
   });
 
-  // Ratings: one vote per reviewer (their average), grouped by their top 3 sounds.
+  // Ratings: one vote per reviewer (their average), grouped by their top 3
+  // sounds, leaving out tags nearly everyone has ("trap", "beats").
   const voteOf = new Map();
   for (const r of reviews) {
     const v = voteOf.get(r.userId) || { sum: 0, n: 0 };
@@ -145,7 +147,7 @@ export async function venueDashboard({ venueId, cityName, days = 28, want = null
   const round1 = (x) => Math.round(x * 10) / 10;
   const groups = new Map();
   for (const [uid, v] of voteOf) {
-    const tags = [...new Set((profiles.get(uid)?.music || []).slice(0, 3).map(tidy))];
+    const tags = [...new Set(signalSounds(profiles.get(uid)?.music).slice(0, 3).map(tidy))];
     for (const g of tags) {
       const x = groups.get(g) || { sum: 0, count: 0 };
       x.sum += v.sum / v.n; x.count++;
@@ -153,11 +155,14 @@ export async function venueDashboard({ venueId, cityName, days = 28, want = null
     }
   }
   const shownGroups = [...groups.entries()].filter(([, x]) => x.count >= MIN_GROUP).sort((a, b) => b[1].count - a[1].count);
-  const foldedCount = [...groups.values()].filter((x) => x.count < MIN_GROUP).reduce((s, x) => s + x.count, 0);
+  const foldedGroups = [...groups.values()].filter((x) => x.count < MIN_GROUP).length;
   const ratings = {
-    overall: reviews.length ? { avg: round1(reviews.reduce((s, r) => s + r.stars, 0) / reviews.length), count: reviews.length } : { avg: null, count: 0 },
+    overall: reviews.length
+      ? { avg: round1(reviews.reduce((s, r) => s + r.stars, 0) / reviews.length), count: reviews.length, demo: reviews.filter((r) => r.demo).length }
+      : { avg: null, count: 0, demo: 0 },
     byTaste: shownGroups.map(([group, x]) => ({ group, avg: round1(x.sum / x.count), count: x.count })),
-    other: { count: foldedCount },
+    // How many taste groups were too small to show (not how many people).
+    other: { groups: foldedGroups },
   };
 
   const bookNext = await whoToBook(users, venueId);
@@ -190,7 +195,7 @@ async function whoToBook(users, venueId) {
 async function crowdGap(users, profiles, want) {
   const e = await findEntity(String(want).slice(0, 80), "urn:entity:artist");
   if (!e) return { want: String(want).slice(0, 80), found: false };
-  const tags = (e.tags || []).filter((t) => String(t.id || t.tag_id || "").startsWith("urn:tag:genre:music")).map((t) => String(t.name).toLowerCase());
+  const tags = (e.tags || []).filter((t) => String(t.id || t.tag_id || "").startsWith("urn:tag:genre:music") && !isGenericSound(t.name)).map((t) => String(t.name).toLowerCase());
   const set = new Set(tags);
   const near = users.filter((u) => (profiles.get(u.id)?.music || []).some((m) => set.has(String(m).toLowerCase()))).length;
   return { want: e.name, found: true, sounds: tags.slice(0, 5).map(tidy), share: near >= MIN_GROUP ? `${near} of ${users.length}` : `${FEWER} of ${users.length}` };

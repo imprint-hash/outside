@@ -139,7 +139,7 @@ async function load() {
     <div class="dash-grid">
       <div class="metric span-4"><small>Visitors, last ${v.days || days} days</small><b>${v.visitors ?? 0}</b><span class="faint" style="font-size:12px">${v.demoUsers ? `${v.demoUsers} demo` : "Distinct people who checked in"}</span></div>
       <div class="metric span-4"><small>Check-ins</small><b>${weekTotal || "–"}</b><span class="faint" style="font-size:12px">Nights with under 3 people aren't counted here</span></div>
-      <div class="metric span-4"><small>Your rating on Outside</small><b class="amber">${v.ratings?.overall?.avg != null ? `${v.ratings.overall.avg.toFixed(1)} ★` : "–"}</b><span class="faint" style="font-size:12px">${v.ratings?.overall?.count ? `${v.ratings.overall.count} ratings` : "No ratings yet"}</span></div>
+      <div class="metric span-4"><small>Your rating on Outside</small><b class="amber">${v.ratings?.overall?.avg != null ? `${v.ratings.overall.avg.toFixed(1)} ★` : "–"}</b><span class="faint" style="font-size:12px">${v.ratings?.overall?.count ? `${v.ratings.overall.count} ratings${v.ratings.overall.demo ? ` · ${v.ratings.overall.demo} demo` : ""}` : "No ratings yet"}</span></div>
 
       ${v.byWeekday ? `<section class="panel span-7"><h3>${icon("calendar_view_week")}Who walks in, by night</h3>${weekHtml(v.byWeekday)}
         ${busyDays.length ? `<div class="day-detail">${busyDays.map((x) => `<div class="note"><b class="label mint">${esc(x.day)}</b><small class="muted">Top sounds</small>${listHtml(x.topSounds)}<small class="muted">They love</small>${listHtml(x.topLoves)}</div>`).join("")}</div>` : ""}
@@ -147,7 +147,7 @@ async function load() {
 
       ${v.ratings ? `<section class="panel span-5"><h3>${icon("star")}Ratings by taste group</h3>
         ${v.ratings.byTaste?.length ? `<div style="display:flex;flex-direction:column;gap:8px">${v.ratings.byTaste.map((g) => `<div class="hbar"><span>${esc(g.group)} fans</span><span class="track"><i style="width:${(g.avg / 5) * 100}%"></i></span><span class="v">${g.avg.toFixed(1)} ★ · ${g.count}</span></div>`).join("")}</div>` : `<p class="faint">No taste group has 3 ratings yet.</p>`}
-        ${v.ratings.other?.count ? `<p class="faint" style="font-size:12px">${v.ratings.other.count} more ratings in smaller groups ("other")</p>` : ""}
+        ${v.ratings.other?.groups ? `<p class="faint" style="font-size:12px">${v.ratings.other.groups} more taste ${v.ratings.other.groups === 1 ? "group" : "groups"} too small to show</p>` : ""}
       </section>` : ""}
 
       ${v.bookNext ? `<section class="panel span-12"><h3>${icon("queue_music")}Who to book next<span class="src">Qloo, from your crowd's favourites and your venue</span></h3>

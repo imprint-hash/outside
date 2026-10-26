@@ -88,3 +88,35 @@ test("names with stray capitals are tidied, real ones are left alone", () => {
   assert.equal(prettyName("McDonald's"), "McDonald's");
   assert.equal(prettyName("Burna Boy"), "Burna Boy");
 });
+
+import { whyLine } from "../src/places.js";
+import { isGenericSound, signalSounds, inCityPick } from "../src/taste.js";
+
+test("why line: names the favourites Qloo says drove the match, plus one thing Qloo knows about the place", () => {
+  const favs = [{ id: "F1", name: "Ezra Collective" }, { id: "F2", name: "Burna Boy" }, { id: "F3", name: "Tems" }];
+  const jazz = { kind: "bar", query: { explainability: { "signal.interests.entities": [{ entity_id: "F1", score: 0.8 }, { entity_id: "F2", score: 0.15 }, { entity_id: "F3", score: 0.05 }] } },
+    properties: { keywords: [{ name: "friendly staff", count: 400 }, { name: "gigs", count: 117 }] } };
+  assert.equal(whyLine(jazz, favs), 'Fits your taste for Ezra Collective · reviewers mention "gigs"');
+  const buka = { kind: "restaurant", query: { explainability: { "signal.interests.entities": [{ entity_id: "F3", score: 0.5 }, { entity_id: "F2", score: 0.45 }] } },
+    tags: [{ id: "urn:tag:genre:place:restaurant:nigerian", name: "Nigerian" }] };
+  assert.equal(whyLine(buka, favs), "Fits your taste for Tems and Burna Boy · Nigerian food");
+  assert.notEqual(whyLine(jazz, favs), whyLine(buka, favs));
+  // No explainability: fall back to what the search was signalled with, and claim nothing else.
+  assert.equal(whyLine({ kind: "club" }, favs), "Fits your taste for Ezra Collective, Burna Boy and Tems");
+  assert.equal(whyLine({ kind: "club" }, []), null);
+});
+
+test("generic sounds: trap and beats are left out of what screens show", () => {
+  assert.ok(isGenericSound("Trap") && isGenericSound("instrumental  hip hop") && isGenericSound("Lo-Fi"));
+  assert.ok(!isGenericSound("Jazz") && !isGenericSound("afrobeats") && !isGenericSound("Hip Hop"));
+  assert.deepEqual(signalSounds(["beats", "Jazz", "trap", "soul"]), ["Jazz", "soul"]);
+  const a = { favourites: ["x"], music: ["trap", "beats", "jazz"], places: [], screen: [], picks: [] };
+  const b = { favourites: ["y"], music: ["trap", "beats", "jazz"], places: [], screen: [], picks: [] };
+  assert.deepEqual(compareProfiles(a, b).because.music, ["Jazz"]);
+});
+
+test("city picks: only places inside the city count", () => {
+  assert.ok(inCityPick({ location: { lat: 51.4798, lon: -0.0565 } }, "London"));
+  assert.ok(!inCityPick({ location: { lat: 6.43, lon: 3.42 } }, "London"), "a Lagos place in London's picks");
+  assert.ok(!inCityPick({}, "London"), "no location, can't place it");
+});

@@ -16,7 +16,10 @@ import { cityOf } from "./cities.js";
 const WEEK_MS = 7 * 24 * 3600_000;
 const memory = new Map();
 
-const keyFor = (cityName, ids) => createHash("sha1").update(`${cityName}|${ids.join(",")}`).digest("hex");
+// Bump PROFILE_VERSION when what a profile holds changes, so old stored ones are rebuilt.
+// v2: city picks are only places inside the city.
+const PROFILE_VERSION = "v2";
+const keyFor = (cityName, ids) => createHash("sha1").update(`${PROFILE_VERSION}|${cityName}|${ids.join(",")}`).digest("hex");
 
 /** A user's taste profile in a city, or null if they haven't said what they love. */
 export async function profileFor(user, cityName = cityOf(user).name) {

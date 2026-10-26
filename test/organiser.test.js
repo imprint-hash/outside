@@ -10,7 +10,7 @@ const dir = mkdtempSync(join(tmpdir(), "outside-organiser-"));
 process.env.OUTSIDE_STORE = join(dir, "store.json");
 process.env.QLOO_API_KEY = "test";
 
-const SOUNDS = { A1: ["afrobeats", "R&B", "pop"], A2: ["jazz", "soul", "funk"], A3: ["metal", "rock", "punk"] };
+const SOUNDS = { A4: ["trap", "beats", "jazz", "soul", "funk"], A1: ["afrobeats", "R&B", "pop"], A2: ["jazz", "soul", "funk"], A3: ["metal", "rock", "punk"] };
 let stub, org, store;
 before(async () => {
   stub = await startQlooStub((path, params) => {
@@ -37,7 +37,7 @@ after(async () => { await stub.close(); rmSync(dir, { recursive: true, force: tr
 beforeEach(async () => { await store.reset(); stub.calls.length = 0; });
 
 const now = new Date("2026-10-25T12:00:00Z");
-const fav = { A1: { id: "A1", name: "Tems", type: "artist" }, A2: { id: "A2", name: "Ezra Collective", type: "artist" }, A3: { id: "A3", name: "Metallica", type: "artist" } };
+const fav = { A4: { id: "A4", name: "Kamasi Washington", type: "artist" }, A1: { id: "A1", name: "Tems", type: "artist" }, A2: { id: "A2", name: "Ezra Collective", type: "artist" }, A3: { id: "A3", name: "Metallica", type: "artist" } };
 async function visitor(id, artist, at, extra = {}) {
   await store.put("users", { id, firstName: id, city: "London", favourites: [fav[artist]], visibility: "everyone", ...extra });
   await store.put("checkins", { id: `c-${id}-${at}`, userId: id, venueId: "V", venueName: "Jazz Cafe", city: "London", at, expiresAt: at });
@@ -80,9 +80,22 @@ test("ratings by taste group fold groups under 3", async () => {
     await store.put("reviews", { id: `${id}|V|d`, userId: id, placeId: "V", stars, note: "", at });
   }
   const d = await org.venueDashboard({ venueId: "V", cityName: "London", now });
-  assert.deepEqual(d.ratings.overall, { avg: 3.3, count: 4 });
+  assert.deepEqual(d.ratings.overall, { avg: 3.3, count: 4, demo: 0 });
   assert.deepEqual(d.ratings.byTaste.map((g) => [g.group, g.avg, g.count]), [["Afrobeats", 4, 3], ["R&B", 4, 3], ["Pop", 4, 3]]);
-  assert.deepEqual(d.ratings.other, { count: 3 }); // jazz, soul, funk: one reviewer each
+  assert.deepEqual(d.ratings.other, { groups: 3 }); // jazz, soul, funk: one reviewer each, three groups
+});
+
+test("taste groups skip generic tags like trap; demo ratings are counted", async () => {
+  const at = "2026-10-23T20:00:00Z";
+  for (const [id, stars] of [["j1", 5], ["j2", 4], ["j3", 3]]) {
+    await visitor(id, "A4", at);
+    await store.put("reviews", { id: `${id}|V|d`, userId: id, placeId: "V", stars, note: "", at, demo: id === "j1" });
+  }
+  const d = await org.venueDashboard({ venueId: "V", cityName: "London", now });
+  assert.deepEqual(d.ratings.byTaste.map((g) => g.group), ["Jazz", "Soul", "Funk"]);
+  assert.equal(d.ratings.overall.demo, 1);
+  const fri = d.byWeekday.find((x) => x.day === "Fri");
+  assert.ok(!fri.topSounds.rows.some((r) => /trap|beats/i.test(r.name)));
 });
 
 test("who to book: signalled by the crowd's artists and the venue, minus artists they already love", async () => {
