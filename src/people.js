@@ -37,6 +37,7 @@ const MEETUP_MINUTES = 30;
 const MEETUP_RADIUS_M = 1000;
 const ARRIVED_M = 25;
 const HELLOS_PER_HOUR = 10;
+export const GUEST_HI = "Guests can say hi to demo people only. Make it yours to meet real people.";
 
 /* ---------- taste ---------- */
 
@@ -208,6 +209,11 @@ export async function sayHi(user, toId, now = new Date()) {
   if (!here.verified) throw new RuleError(SHARE_LOCATION, 403);
   const target = here.people.find((p) => p.userId === toId);
   if (!target) throw new RuleError("They're not here, or they've chosen not to be seen.", 404);
+  if (user.guest === true) {
+    // Guests are anyone with the link, so they only reach the labelled demo people.
+    const to = await get("users", toId);
+    if (!to || to.demo !== true || to.guest === true) throw new RuleError(GUEST_HI, 403);
+  }
   const lastHour = await list("hellos", (h) => h.from === user.id && now - new Date(h.at) < 3600_000, { from: user.id });
   if (lastHour.length >= HELLOS_PER_HOUR) throw new RuleError("That's a lot of hellos for one hour. Try again a bit later.", 429);
   const open = (await Promise.all([list("hellos", () => true, { from: user.id, to: toId }), list("hellos", () => true, { from: toId, to: user.id })])).flat().filter((h) => h.status === "pending" || h.status === "accepted");

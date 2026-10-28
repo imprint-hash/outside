@@ -10,6 +10,7 @@ import { placeCard } from "../place-card.js";
 import { addReview, pendingReviews } from "../reviews.js";
 import { entityById, shortName } from "../places.js";
 import { renewDemoCheckins } from "../demo.js";
+import { removeOldGuests } from "../guest.js";
 import { findEntity } from "../qloo.js";
 import { put, list } from "../store.js";
 import { cityOf, cityNear } from "../cities.js";
@@ -19,6 +20,7 @@ const EVENTS_PER_HOUR = 10;
 const bearer = (req, secret) => Boolean(secret) && req.headers.authorization === `Bearer ${secret}`;
 
 const organiserOnly = (user, message = "This view is for event organisers and venues.") => {
+  if (user.guest === true) throw new HttpError("Guests can't run a venue. Sign up as a venue to add your own.", 403);
   if (user.role !== "organiser") throw new HttpError(message, 403);
 };
 
@@ -87,7 +89,7 @@ export const routes = [
 
   ["GET", "/api/cron/demo", async ({ req }) => {
     if (!bearer(req, process.env.CRON_SECRET)) throw new HttpError("Not allowed.", 403);
-    return { renewed: await renewDemoCheckins() };
+    return { renewed: await renewDemoCheckins(), guestsRemoved: await removeOldGuests() };
   }],
 ];
 
