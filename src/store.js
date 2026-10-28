@@ -11,7 +11,7 @@
  *
  * Collections: users, checkins, hellos, messages, meetups, blocks, reports,
  * events (found and organiser-added), reviews, searches (per-city search
- * markers), profiles (cached taste profiles).
+ * markers), profiles (cached taste profiles), templates (the guest template).
  */
 
 import "./env.js";
@@ -22,7 +22,7 @@ import { randomUUID } from "node:crypto";
 
 export const newId = () => randomUUID();
 
-const COLLECTIONS = ["users", "checkins", "hellos", "messages", "meetups", "blocks", "reports", "events", "reviews", "searches", "profiles", "qcache"];
+const COLLECTIONS = ["users", "checkins", "hellos", "messages", "meetups", "blocks", "reports", "events", "reviews", "searches", "profiles", "qcache", "templates"];
 
 export class StoreError extends Error {
   constructor(message) {

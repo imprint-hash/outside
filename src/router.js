@@ -5,7 +5,8 @@
  */
 
 import { QlooError, searchEntities, stats, prettyName } from "./qloo.js";
-import { AuthError, signUp, logIn, userFromToken, selfView } from "./auth.js";
+import { AuthError, signUp, logIn, sessionFromToken, issueToken, selfView } from "./auth.js";
+import { createGuest, rateLimit, clientIp } from "./guest.js";
 import { resolveOrigin, nearYou, translateCity, tonight, CATEGORIES } from "./places.js";
 import * as people from "./people.js";
 import { get, put, storeName, StoreError } from "./store.js";
@@ -38,10 +39,15 @@ async function readJson(req) {
   return body;
 }
 
-async function currentUser(req) {
+const bearerToken = (req) => {
   const h = req.headers.authorization || "";
-  return userFromToken(h.startsWith("Bearer ") ? h.slice(7) : "");
-}
+  return h.startsWith("Bearer ") ? h.slice(7) : "";
+};
+const currentSession = (req) => sessionFromToken(bearerToken(req));
+/** The signed-in session on a public route, or null. A bad token there is ignored. */
+const optionalSession = (req) => (bearerToken(req) ? currentSession(req).catch(() => null) : null);
+
+export const READ_ONLY = "This is a view-only demo. Sign up as a venue to add your own.";
 
 const kindsFrom = (v, fallback) => {
   const ks = (Array.isArray(v) ? v : String(v || "").split(",")).map((k) => k.trim()).filter(Boolean);
@@ -54,17 +60,32 @@ const kindsFrom = (v, fallback) => {
 const core = [
   ["GET", "/api/health", async () => ({ ok: true, store: storeName, qloo: stats })],
 
-  ["POST", "/api/auth/signup", async ({ body }) => {
-    const { user, token, returning } = await signUp(body);
+  ["POST", "/api/auth/signup", async ({ req, body }) => {
+    // A guest signing up keeps their account; anyone else gets a new one.
+    const s = await optionalSession(req);
+    const guest = s && !s.readOnly && s.user.guest === true ? s.user : null;
+    const { user, token, returning, upgraded } = await signUp(body, { guest });
     // Only a brand-new account can ask to be an organiser.
-    if (returning === false && body.organiser === true) await put("users", { ...user, role: "organiser" });
-    return { token, returning, user: selfView(await get("users", user.id)) };
+    if (returning === false && body.organiser === true) await put("users", { ...(await get("users", user.id)), role: "organiser" });
+    return { token, returning, upgraded: Boolean(upgraded), user: selfView(await get("users", user.id)) };
   }],
   ["POST", "/api/auth/login", async ({ body }) => {
     const { user, token } = await logIn(body);
     return { token, returning: true, user: selfView(user) };
   }],
-  ["GET", "/api/me", async ({ user }) => ({ user: selfView(user), checkin: await people.myCheckin(user) })],
+  ["GET", "/api/me", async ({ user, readOnly }) => ({ user: { ...selfView(user), readOnly }, checkin: await people.myCheckin(user) })],
+
+  // Judges get in with no typing: a fresh guest in London, or the demo venue, view-only.
+  ["POST", "/api/demo/guest", async ({ req }) => {
+    rateLimit(`guest|${clientIp(req)}`);
+    return createGuest();
+  }],
+  ["POST", "/api/demo/venue", async ({ req }) => {
+    rateLimit(`venue|${clientIp(req)}`, 60);
+    const v = await get("users", "demo-venue");
+    if (!v || v.role !== "organiser" || v.demo !== true) throw new HttpError("The demo venue isn't set up right now.", 503);
+    return { token: issueToken(v.id, Date.now(), { readOnly: true }), user: { ...selfView(v), readOnly: true } };
+  }],
   ["POST", "/api/me/taste", async ({ user, body }) => {
     if (!Array.isArray(body.items)) throw new HttpError("Send items: [{ type, name }].", 400);
     const { user: saved, missing } = await people.setTaste(user, body.items);
@@ -130,7 +151,7 @@ const core = [
   ["GET", "/api/share-night", async ({ user }) => people.shareMyNight(user)],
 ];
 
-const corePublic = ["/api/health", "/api/auth/signup", "/api/auth/login", "/api/search", "/api/avatar-options"];
+const corePublic = ["/api/health", "/api/auth/signup", "/api/auth/login", "/api/search", "/api/avatar-options", "/api/demo/guest", "/api/demo/venue"];
 
 // Core first, so GET /api/places/tonight still wins over /api/places/:id.
 const routes = [...core, ...cityMap.routes, ...venue.routes];
@@ -167,11 +188,14 @@ export async function handle(req, res) {
     const hit = match(req.method, url.pathname.replace(/\/$/, ""));
     if (!hit) return send(404, { error: "No such endpoint." });
     const body = ["POST", "PUT", "PATCH"].includes(req.method) ? await readJson(req) : {};
-    const user = PUBLIC.has(hit.pattern) ? null : await currentUser(req);
+    const session = PUBLIC.has(hit.pattern) ? null : await currentSession(req);
+    const user = session?.user ?? null;
+    const readOnly = Boolean(session?.readOnly);
+    if (readOnly && req.method !== "GET") throw new HttpError(READ_ONLY, 403);
     if (user && !PUBLIC.has(hit.pattern) && /^\/api\/(places\/(near|translate)|events|map)/.test(hit.pattern) && !user.favourites?.length) {
       throw new HttpError("Add a few things you love first, so picks can match your taste.", 409);
     }
-    return send(200, await hit.fn({ req, body, user, params: hit.params, query: url.searchParams }));
+    return send(200, await hit.fn({ req, body, user, readOnly, params: hit.params, query: url.searchParams }));
   } catch (err) {
     const known = err instanceof HttpError || err instanceof QlooError || err instanceof AuthError || err instanceof people.RuleError || err instanceof StoreError || err instanceof AvatarError;
     if (!known) console.error(err);

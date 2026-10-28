@@ -30,22 +30,28 @@ const DAYS_30 = 30 * 24 * 3600_000;
 const b64 = (s) => Buffer.from(s).toString("base64url");
 const sign = (body) => createHmac("sha256", SECRET()).update(body).digest("base64url");
 
-export function issueToken(userId, now = Date.now()) {
-  const body = b64(JSON.stringify({ u: userId, exp: now + DAYS_30 }));
+/** A signed session. `readOnly` sessions (the demo venue) can look but not change anything. */
+export function issueToken(userId, now = Date.now(), { readOnly = false } = {}) {
+  const body = b64(JSON.stringify({ u: userId, exp: now + DAYS_30, ...(readOnly ? { ro: 1 } : {}) }));
   return `${body}.${sign(body)}`;
 }
 
 export async function userFromToken(token) {
+  return (await sessionFromToken(token)).user;
+}
+
+/** { user, readOnly } from a token. The read-only flag is inside the signed body, so it can't be taken off. */
+export async function sessionFromToken(token) {
   const [body, mac] = String(token || "").split(".");
   if (!body || !mac) throw new AuthError("Please sign in.");
   const want = Buffer.from(sign(body));
   const got = Buffer.from(mac);
   if (want.length !== got.length || !timingSafeEqual(want, got)) throw new AuthError("Your session is not valid. Please sign in again.");
-  const { u, exp } = JSON.parse(Buffer.from(body, "base64url").toString());
+  const { u, exp, ro } = JSON.parse(Buffer.from(body, "base64url").toString());
   if (Date.now() > exp) throw new AuthError("Your session has expired. Please sign in again.");
   const user = await get("users", u);
   if (!user) throw new AuthError("That account no longer exists.");
-  return user;
+  return { user, readOnly: ro === 1 };
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -70,8 +76,12 @@ export function checkPassword(password, stored) {
 const DUMMY = hashPassword(randomBytes(12).toString("hex"));
 const WRONG = "That email already has an account. Enter its password.";
 
-/** Sign up, or sign back in with the same email and its password. */
-export async function signUp({ email, password, firstName, homeCity } = {}) {
+/**
+ * Sign up, or sign back in with the same email and its password. A signed-in
+ * `guest` signing up with a new email keeps their account (taste, city, stay,
+ * avatar) and stops being a guest.
+ */
+export async function signUp({ email, password, firstName, homeCity } = {}, { guest = null } = {}) {
   const mail = String(email || "").trim().toLowerCase();
   const name = String(firstName || "").trim().slice(0, 30);
   if (!EMAIL.test(mail)) throw new AuthError("Enter a valid email address.", 400);
@@ -83,6 +93,21 @@ export async function signUp({ email, password, firstName, homeCity } = {}) {
   if (typeof password !== "string" || password.length < PASSWORD_MIN) throw new AuthError(`Choose a password of at least ${PASSWORD_MIN} characters.`, 400);
   if (password.length > PASSWORD_MAX) throw new AuthError("That password is too long.", 400);
   if (!name) throw new AuthError("Tell us your first name.", 400);
+  if (guest?.guest === true) {
+    const { guest: _g, demo: _d, ...rest } = guest;
+    const user = await put("users", {
+      ...rest,
+      email: mail,
+      passwordHash: hashPassword(password),
+      firstName: name,
+      homeCity: String(homeCity || "").trim().slice(0, 40) || null,
+      verified: false,
+      upgradedAt: new Date().toISOString(),
+    });
+    // Reviews they wrote as a guest aren't demo reviews any more.
+    for (const r of await list("reviews", (r) => r.userId === user.id && r.demo === true, { userId: user.id })) await put("reviews", { ...r, demo: false });
+    return { user, token: issueToken(user.id), returning: false, upgraded: true };
+  }
   const user = await put("users", {
     email: mail,
     passwordHash: hashPassword(password),
@@ -107,7 +132,7 @@ export async function logIn({ email, password } = {}) {
 }
 
 /** What a person may see about themselves. Never the hash of anything secret. */
-export const selfView = (u) => ({ id: u.id, email: u.email, firstName: u.firstName, homeCity: u.homeCity, city: u.city || null, verified: u.verified, favourites: u.favourites, visibility: u.visibility, avatar: u.avatar || null, stay: u.stay || null, role: u.role || null });
+export const selfView = (u) => ({ id: u.id, email: u.email, firstName: u.firstName, homeCity: u.homeCity, city: u.city || null, verified: u.verified, favourites: u.favourites, visibility: u.visibility, avatar: u.avatar || null, stay: u.stay || null, role: u.role || null, guest: u.guest === true, demo: u.demo === true });
 
 /** Someone else's avatar: theirs if they made one, the default if not. */
 export const avatarOf = (u) => u?.avatar || DEFAULT_AVATAR;
