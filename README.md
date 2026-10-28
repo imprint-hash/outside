@@ -12,6 +12,16 @@ Open the link — no sign-up. You're a guest in London. Venue view: For venues �
 - "Make it yours" (top bar) keeps that guest's taste and city and adds a name and password.
 - People and reviews marked **Demo** are seeded so the map isn't empty; guests count as demo too. Guests can say hi to demo people only, and are deleted after 48 hours.
 - The demo venue (Jazz Cafe) is view-only.
+- Tap any place with a match, then **See the Qloo call**: the exact `/v2/insights` request behind that number, the affinity Qloo returned, and how much each favourite counted (Qloo's explainability).
+
+## How Outside meets the judging criteria
+
+| Criterion (from the hackathon page) | How Outside meets it | Where to check |
+|---|---|---|
+| **Technological Implementation**: "How thoroughly and skillfully does the project use Qloo? Does the code reflect genuine effort and a working, non-trivial implementation?" | Qloo decides every "fits you": places by taste with explainability, event lineups scored per artist, two people compared on Qloo taste profiles, and a venue's next booking. Five kinds of Qloo request (`/search`, `/entities`, `/v2/insights` for places, artists and tags). One client queues, retries, de-duplicates and caches every call. 113 automated tests, including attack tests. | **See the Qloo call** on any matched place; [Qloo calls](#qloo-calls); `src/qloo.js`, `src/places.js`, `src/likeness.js`; `npm test` |
+| **Design**: "Does the project deliver a complete, coherent product experience, not just a technical proof of concept?" | One product for both sides of a night out: a live 3D map, place and event cards, check in, say hi, chat, safe meet-up, "how was it" ratings, ride links, and a venue dashboard. No sign-up wall: judges land straight on the map. | [outside-tonight.vercel.app](https://outside-tonight.vercel.app); For venues → demo venue |
+| **Potential Impact**: "Does the project make a credible, specific case for solving a real problem for a real audience…?" | Visitors and people new to a city can find popular places, but not *their* people. Outside shows where people with their taste are tonight, safely (counts, not names). Venues learn who walks in and who to book, without any personal data. | Glowing places on the map; the two ratings on a card; the venue dashboard |
+| **Quality of the Idea**: "Is this a creative, non-obvious use of Qloo…?" | Qloo usually answers "what will you like". Outside uses it to answer "who here is like you, right now": live check-ins scored by Qloo taste likeness, and a second rating that only counts people like you. | The "people like you" glow; "People with your taste" rating; `src/crowd.js`, `src/reviews.js` |
 
 ## What it does
 
@@ -52,7 +62,7 @@ Every "fits you" in Outside is a Qloo answer. Without Qloo there is no ranking o
 | Who to book | `/v2/insights` | `filter.type=urn:entity:artist`, signals = the crowd's artists + the venue | venue dashboard | 6 h |
 | Crowd gap | `/search` | artist name | venue dashboard | 6 h |
 
-All Qloo calls go through one function (`src/qloo.js`): the key stays on the server, each call has a 15 s limit, a busy Qloo is retried once, and failures are shown as errors, never as "nothing matches you".
+All Qloo calls go through one function (`src/qloo.js`): the key stays on the server, each call has a 15 s limit, at most 3 run at once, a busy Qloo (429) is retried with growing waits, the same request made twice at once is sent once, answers are cached for 6 hours (also in the store, so a fresh server doesn't ask again), and failures are shown as errors, never as "nothing matches you". Each ranked place carries the request that produced it, which the **See the Qloo call** chip shows.
 
 ## Privacy rules
 

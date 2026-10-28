@@ -120,3 +120,19 @@ test("city picks: only places inside the city count", () => {
   assert.ok(!inCityPick({ location: { lat: 6.43, lon: 3.42 } }, "London"), "a Lagos place in London's picks");
   assert.ok(!inCityPick({}, "London"), "no location, can't place it");
 });
+
+test("proofOf shows the Qloo call behind a match, with favourites by name", async () => {
+  const { proofOf } = await import("../src/places.js");
+  assert.equal(proofOf({ entity_id: "x" }), null);
+  const e = {
+    entity_id: "x",
+    _q: { "filter.type": "urn:entity:place", "filter.location.radius": 4000, "signal.interests.entities": ["id-tems", "id-burna"], "feature.explainability": true, take: 40, unused: undefined },
+    query: { affinity: 0.874, explainability: { "signal.interests.entities": [{ entity_id: "id-burna", score: 0.31 }, { entity_id: "id-tems", score: 0.62 }, { entity_id: "id-zero", score: 0 }] } },
+  };
+  const p = proofOf(e, [{ id: "id-tems", name: "Tems" }, { id: "id-burna", name: "Burna Boy" }]);
+  assert.equal(p.call, "GET /v2/insights");
+  assert.deepEqual(p.params["signal.interests.entities"], ["Tems", "Burna Boy"]);
+  assert.ok(!("unused" in p.params));
+  assert.equal(p.affinity, 0.874);
+  assert.deepEqual(p.drivers.map((d) => d.name), ["Tems", "Burna Boy"]);
+});

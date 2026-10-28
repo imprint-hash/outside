@@ -4,7 +4,7 @@
 // API; missing fields are left out.
 import { api, esc, needSignIn, leaveDemoVenue } from "/api.js";
 import { $, icon, topbar, setHelloCount, ratingPill, facesRow, tripText, hoursFact, timeIn, dayIn, toast, sheetOpen, closeSheet, PLUMBOB, demoTag, demoCount } from "/ui.js";
-import { openPlace, openEvent, getCard, checkIn, cardCache } from "/card.js";
+import { openPlace, openEvent, getCard, checkIn, cardCache, proofChip, toggleProof } from "/card.js";
 import { openHere, openInbox, openChat, openSettings, openRate, pollInbox } from "/social.js";
 import { makeMap, setGlow, reduceMotion, PITCH, BEARING } from "/map3d.js";
 
@@ -337,7 +337,7 @@ function featureVenue(v0) {
         <div class="title-row"><h3>${esc(v.name)}</h3>${v.area ? `<span class="area">${esc(v.area)}</span>` : ""}</div>
         ${CAT_NAME[v.category] ? `<p class="subtitle">${esc(CAT_NAME[v.category])}${v.fit ? ` · ${esc(v.fit)}` : ""}</p>` : ""}
       </div>
-      ${v.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${v.match}% match</span><span class="what">Your taste</span></div>${v.why ? `<p>${esc(v.why)}</p>` : ""}</div></div>` : ""}
+      ${v.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${v.match}% match</span><span class="what">Your taste</span></div>${v.why ? `<p>${esc(v.why)}</p>` : ""}${proofChip(v.proof)}</div></div>` : ""}
       ${roomHtml(v.crowd, faces)}
       ${facts ? `<div class="facts">${facts}</div>` : ""}
       ${quote ? `<blockquote class="quote">${icon("format_quote")}<span>“${esc(quote.note)}”${quote.because ? ` <span class="faint">· ${esc(quote.because)}</span>` : ""} ${demoTag(quote)}</span></blockquote>` : ""}
@@ -453,6 +453,7 @@ $("streamBody").addEventListener("click", async (e) => {
   const id = rest.join(":");
   const act = e.target.closest("[data-act]")?.dataset.act;
   if (type === "event") return act ? (location.hash = `event/${id}`) : select({ type, id });
+  if (act === "proof") return toggleProof(e.target.closest("[data-act]"), findVenue(id)?.proof, id);
   if (act === "open") return goPlace(id);
   if (act === "ride") { const v = findVenue(id); location.hash = `place/${id}?${v?.match != null ? `m=${v.match}&` : ""}ride=1`; return; }
   if (act === "checkin") {

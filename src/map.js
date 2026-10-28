@@ -76,7 +76,7 @@ export async function mapFor(viewer, { when = "tonight", kinds, origin = null, n
   ]);
 
   let venues = places.filter((p) => placeFits(p, win.placeRule)).map((p) => ({
-    id: p.id, name: p.name, category: p.kind ?? null, location: p.location, area: p.area, match: p.match, fit: p.fit, why: p.why,
+    id: p.id, name: p.name, category: p.kind ?? null, location: p.location, area: p.area, match: p.match, fit: p.fit, why: p.why, proof: p.proof ?? null,
     rating: p.rating, price: p.price, hours: p.hours, trip: p.trip, image: p.image, crowd: countsOf(crowd.get(p.id)),
   }));
   // Venues people are checked in at always show, even when Qloo's list missed them.

@@ -686,3 +686,16 @@ dialog.sheet.center[open] { animation: rise 0.25s cubic-bezier(.2, .8, .2, 1); }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   .ping::before, .mk .halo, .mk .gem, .avatar .plumbob, .cas-preview, .start .brand-mark { animation: none !important; }
 }
+
+/* The "Q" chip: the Qloo request behind a match. */
+.qchip { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 3px 10px 3px 3px; border: 1px solid var(--line-strong); border-radius: 999px; background: transparent; color: var(--on-var); font: 600 11px/16px var(--head); letter-spacing: .04em; cursor: pointer; }
+.qchip:hover, .qchip[aria-expanded="true"] { color: var(--mint); border-color: var(--mint); }
+.qchip:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+.qchip .q { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#148CC8, #00A08C, #DCB478, #F08C78, #C8648C, #8C8CC8, #148CC8); color: #fff; font: 800 10px/1 var(--head); }
+.proof { display: grid; gap: 6px; margin-top: 10px; padding: 10px; border-radius: var(--r-md); background: var(--high); }
+.proof .label { margin-top: 4px; }
+.proof .call { font: 600 12px/18px ui-monospace, Menlo, Consolas, monospace; color: var(--mint); }
+.proof .params { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; font: 400 11px/16px ui-monospace, Menlo, Consolas, monospace; }
+.proof .params dt { color: var(--on-var); }
+.proof .params dd { margin: 0; overflow-wrap: anywhere; }
+.proof p { font-size: 12px; }

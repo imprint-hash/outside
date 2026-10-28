@@ -117,7 +117,30 @@ export function shapePlace(e, { origin, now = new Date(), timeZone, because = []
     vibe: vibe(e.tags),
     match: affinity === null ? null : Math.round(affinity * 100),
     why: whyLine(e, signals || because.map((name) => ({ id: null, name })), lead ? { lead } : {}),
+    proof: proofOf(e, signals || []),
   };
+}
+
+/**
+ * The Qloo request behind a pick, for the card's "Q" chip: the call, its
+ * parameters (signal ids shown with their names), the affinity Qloo returned
+ * and how much each favourite counted (explainability). Null when the entity
+ * didn't come from a ranked call.
+ */
+export function proofOf(e, signals = []) {
+  if (!e?._q) return null;
+  const nameOf = new Map(signals.filter((s) => s?.id).map((s) => [s.id, s.name]));
+  const params = {};
+  for (const [k, v] of Object.entries(e._q)) {
+    if (v === undefined || v === null || v === "") continue;
+    params[k] = k === "signal.interests.entities" ? [].concat(v).map((id) => nameOf.get(id) || id) : v;
+  }
+  const drivers = (e.query?.explainability?.["signal.interests.entities"] || [])
+    .filter((x) => (x.score ?? 0) > 0)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, 5)
+    .map((x) => ({ name: nameOf.get(x.entity_id) || x.entity_id, score: Math.round(x.score * 100) / 100 }));
+  return { call: "GET /v2/insights", params, affinity: e.query?.affinity ?? null, drivers };
 }
 
 function listOf(names) {
@@ -152,8 +175,8 @@ const titleCase = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
  */
 async function placesAround({ origin, kinds, signals = [], radius = 5000, take = 20, extra = {} }) {
   const lists = await Promise.all(
-    kinds.map((k) =>
-      insights({
+    kinds.map((k) => {
+      const q = {
         "filter.type": "urn:entity:place",
         "filter.location": `POINT(${origin.lon} ${origin.lat})`,
         "filter.location.radius": radius,
@@ -162,8 +185,9 @@ async function placesAround({ origin, kinds, signals = [], radius = 5000, take =
         "feature.explainability": signals.length ? true : undefined,
         take,
         ...extra,
-      }).then((r) => (r.entities || []).map((e) => ({ ...e, kind: k }))),
-    ),
+      };
+      return insights(q).then((r) => (r.entities || []).map((e) => ({ ...e, kind: k, _q: q })));
+    }),
   );
   const seen = new Map();
   for (const e of lists.flat()) {
@@ -217,11 +241,10 @@ export async function translateCity({ favourites, city = "Lagos", origin = null,
   if (!favourites?.length) throw new QlooError("Add at least one place or artist you love back home.", 400);
   const ids = favourites.map((f) => f.id);
   const lists = await Promise.all(
-    kinds.map((k) =>
-      insights({ "filter.type": "urn:entity:place", "filter.location.query": city, "filter.tags": CATEGORIES[k], "signal.interests.entities": ids, "feature.explainability": true, take: 15 }).then((r) =>
-        (r.entities || []).map((e) => ({ ...e, kind: k })),
-      ),
-    ),
+    kinds.map((k) => {
+      const q = { "filter.type": "urn:entity:place", "filter.location.query": city, "filter.tags": CATEGORIES[k], "signal.interests.entities": ids, "feature.explainability": true, take: 15 };
+      return insights(q).then((r) => (r.entities || []).map((e) => ({ ...e, kind: k, _q: q })));
+    }),
   );
   const seen = new Map();
   for (const e of lists.flat()) if (!seen.has(e.entity_id)) seen.set(e.entity_id, e);

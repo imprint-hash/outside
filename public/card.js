@@ -63,6 +63,43 @@ function facesHtml(crowd) {
     <p class="faint" style="font-size:12px">No names or locations. You see who they are once you're both checked in here.</p>`;
 }
 
+/* ---------- the "Q" chip: the Qloo request behind a match ---------- */
+
+const show = (v) => (Array.isArray(v) ? v.join(", ") : String(v));
+
+/** A small button under a match; tapping it opens the Qloo call behind the number. */
+export function proofChip(proof) {
+  if (!proof) return "";
+  return `<button class="qchip" type="button" data-act="proof" aria-expanded="false"><span class="q" aria-hidden="true">Q</span>See the Qloo call</button><div class="proof" hidden></div>`;
+}
+
+export function proofHtml(proof, placeId) {
+  const params = Object.entries(proof.params || {});
+  const drivers = proof.drivers || [];
+  const top = Math.max(0.01, ...drivers.map((d) => d.score));
+  return `
+    <p class="label">The match · one call to Qloo</p>
+    <code class="call">${esc(proof.call)}</code>
+    <dl class="params">${params.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(show(v))}</dd>`).join("")}</dl>
+    ${proof.affinity != null ? `<p>Qloo's affinity for this place: <b class="mint">${Number(proof.affinity).toFixed(3)}</b>, shown as ${Math.round(proof.affinity * 100)}%.</p>` : ""}
+    ${drivers.length ? `<p class="label">What carried it · Qloo explainability</p>
+      <div class="kw">${drivers.map((d) => `<div class="kw-row"><span>${esc(d.name)}</span><span class="n">${d.score.toFixed(2)}</span><span class="bar"><i style="width:${Math.max(4, (d.score / top) * 100)}%"></i></span></div>`).join("")}</div>` : ""}
+    <p class="label">Rating and reviews · one more call</p>
+    <code class="call">GET /v2/insights</code>
+    <dl class="params"><dt>filter.type</dt><dd>urn:entity:place</dd><dt>filter.results.entities</dt><dd>${esc(placeId)}</dd></dl>
+    <p class="faint" style="font-size:11px">Only the things you love are sent to Qloo, never who you are.</p>`;
+}
+
+/** Open or close the proof panel next to a chip. */
+export function toggleProof(chip, proof, placeId) {
+  const panel = chip.nextElementSibling;
+  if (!panel) return;
+  const open = panel.hidden;
+  if (open && !panel.innerHTML) panel.innerHTML = proofHtml(proof, placeId);
+  panel.hidden = !open;
+  chip.setAttribute("aria-expanded", String(open));
+}
+
 const SUMM = [["ambience", "Ambience"], ["service", "Service"], ["crowd", "Crowd"], ["overall", "Overall"]];
 
 function placeHtml(ctx, c, { ride }) {
@@ -93,7 +130,7 @@ function placeHtml(ctx, c, { ride }) {
         ${p.address ? `<p class="muted" style="font-size:13px">${esc(p.address)}</p>` : ""}
       </div>
       ${facts ? `<div class="facts">${facts}</div>` : ""}
-      ${c.fit?.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${c.fit.match}% match</span><span class="what">Your taste · Qloo</span></div>${p.why ? `<p>${esc(p.why)}</p>` : ""}</div></div>` : ""}
+      ${c.fit?.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${c.fit.match}% match</span><span class="what">Your taste · Qloo</span></div>${p.why ? `<p>${esc(p.why)}</p>` : ""}${proofChip(ctx.findVenue?.(p.id)?.proof)}</div></div>` : ""}
 
       <div class="actions">
         <button class="btn btn-mint btn-stack" type="button" data-act="ride">${icon("local_taxi")}Ride there</button>
@@ -159,6 +196,7 @@ export async function openPlace(ctx, id, { match = null, ride = false } = {}) {
   body.onclick = async (e) => {
     const act = e.target.closest("[data-act]")?.dataset.act;
     if (!act) return;
+    if (act === "proof") return toggleProof(e.target.closest("[data-act]"), ctx.findVenue?.(id)?.proof, id);
     if (act === "ride") {
       const slot = body.querySelector("#rideSlot");
       if (!c.ride) return toast("No ride links for this place.", { error: true });
