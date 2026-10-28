@@ -20,7 +20,7 @@ Open the link — no sign-up. You're a guest in London. Venue view: For venues �
 |---|---|---|
 | **Technological Implementation**: "How thoroughly and skillfully does the project use Qloo? Does the code reflect genuine effort and a working, non-trivial implementation?" | Qloo decides every "fits you": places by taste with explainability, event lineups scored per artist, two people compared on Qloo taste profiles, and a venue's next booking. Five kinds of Qloo request (`/search`, `/entities`, `/v2/insights` for places, artists and tags). One client queues, retries, de-duplicates and caches every call. 113 automated tests, including attack tests. | **See the Qloo call** on any matched place; [Qloo calls](#qloo-calls); `src/qloo.js`, `src/places.js`, `src/likeness.js`; `npm test` |
 | **Design**: "Does the project deliver a complete, coherent product experience, not just a technical proof of concept?" | One product for both sides of a night out: a live 3D map, place and event cards, check in, say hi, chat, safe meet-up, "how was it" ratings, ride links, and a venue dashboard. No sign-up wall: judges land straight on the map. | [outside-tonight.vercel.app](https://outside-tonight.vercel.app); For venues → demo venue |
-| **Potential Impact**: "Does the project make a credible, specific case for solving a real problem for a real audience…?" | Visitors and people new to a city can find popular places, but not *their* people. Outside shows where people with their taste are tonight, safely (counts, not names). Venues learn who walks in and who to book, without any personal data. | Glowing places on the map; the two ratings on a card; the venue dashboard |
+| **Potential Impact**: "Does the project make a credible, specific case for solving a real problem for a real audience…?" | Visitors and people new to a city can find popular places, but not *their* people. Outside shows where people with their taste are tonight, safely (counts, not names). Venues learn who walks in and who to book, without any personal data. Who pays: never the people on the map; organisers pay for an Event Spotlight that reaches only people whose taste fits the lineup (planned, see [Business model](#business-model)). | Glowing places on the map; the two ratings on a card; the venue dashboard |
 | **Quality of the Idea**: "Is this a creative, non-obvious use of Qloo…?" | Qloo usually answers "what will you like". Outside uses it to answer "who here is like you, right now": live check-ins scored by Qloo taste likeness, and a second rating that only counts people like you. | The "people like you" glow; "People with your taste" rating; `src/crowd.js`, `src/reviews.js` |
 
 ## What it does
@@ -37,6 +37,18 @@ You tell Outside a few things you love (artists, places, films, shows, brands). 
 **For venues**
 - **Know your crowd**: who walks in by night of the week, their top sounds and favourite artists, ratings by taste group, and who to book next (Qloo artists this crowd would love). Totals only; any group under 3 people is folded away.
 - **Post events**: they reach people whose taste fits the lineup.
+
+## Business model
+
+Free for people; organisers pay to reach the right crowd. People find venues free online already, so the core stays free. Prices below are **planned** (see them at `/plans`).
+
+| Plan | Who | Price (planned) | What you get |
+|---|---|---|---|
+| **Free** | Everyone | $0 | The map, places, ratings, events, check in and saying hi. |
+| **Outside Premium** | People | $4.99 a month | Plan ahead (see where your people will be in a city before you land), unlimited hellos (free accounts get 3 a night), see your matches' full taste. |
+| **Event Spotlight** | Organisers | $15 per event, per city | The event is pinned at the top for people whose taste fits its lineup, always labelled "Spotlight", plus the crowd dashboard. |
+
+Planned pricing. During judging everything is unlocked and nothing is charged; there is no paywall or limit in the code.
 
 ## Why Qloo is essential
 
