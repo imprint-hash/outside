@@ -14,7 +14,6 @@ import { resolveFavourites } from "./taste.js";
 import { likeness } from "./likeness.js";
 import { shortName } from "./places.js";
 import { cityNamed, cityNear } from "./cities.js";
-import { nextLocalHour } from "./geo.js";
 import { localDay } from "./reviews.js";
 import { hashPassword } from "./auth.js";
 import { randomBytes } from "node:crypto";
@@ -78,7 +77,8 @@ function checkinFor(user, venue, city, at) {
     venueLocation: venue.location,
     city: city.name,
     at: at.toISOString(),
-    expiresAt: nextLocalHour(at, city.tz, 6).toISOString(),
+    // Demo people stay "out" for 26 hours, so the daily renew always overlaps: judges in any time zone see them.
+    expiresAt: new Date(at.getTime() + 26 * 3600_000).toISOString(),
     demo: true,
   };
 }

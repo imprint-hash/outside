@@ -80,7 +80,7 @@ test("renew re-checks-in demo users; removeDemo leaves real people alone", async
   assert.equal(await demo.renewDemoCheckins(later), 10);
   const c = await store.get("checkins", "demo-amara-checkin");
   assert.ok(new Date(c.expiresAt) > later);
-  assert.equal(new Date(c.expiresAt).toISOString(), "2026-10-31T06:00:00.000Z"); // 06:00 GMT Sat 31 Oct
+  assert.equal(new Date(c.expiresAt).getTime() - new Date(c.at).getTime(), 26 * 3600_000); // demo people stay out 26h so the daily renew overlaps
 
   await store.put("hellos", { id: "h1", from: "demo-amara", to: "real-1", status: "pending" });
   const removed = await demo.removeDemo();

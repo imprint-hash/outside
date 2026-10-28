@@ -22,7 +22,7 @@ export const CATEGORIES = {
 };
 
 // Not a night out, whatever the taste graph says.
-const NOT_A_NIGHT_OUT = /worship|church|mosque|cathedral|school|universit|college|hospital|clinic|pharmac|bank|government|embassy|airport|car rental|gas station|real estate/i;
+const NOT_A_NIGHT_OUT = /worship|church|mosque|cathedral|school|universit|college|hospital|clinic|pharmac|bank|government|embassy|airport|car rental|gas station|real estate|eurostar|business (?:premier )?lounge|premier lounge|executive lounge|airline/i;
 // Words reviewers use that say nothing about the place.
 const EMPTY_WORDS = /^(food|service|staff|place|price|prices|ambience|atmosphere|vibe|vibes|experience|time|people|money|value|quality|menu|order|wait|waiter|waitress|courteous staff|food portions)$/i;
 
