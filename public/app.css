@@ -228,7 +228,7 @@ img { max-width: 100%; }
   display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--gutter);
   max-width: 1440px; margin: 0 auto;
   padding: 16px var(--gutter) 0;
-  height: calc(100dvh - var(--top) - var(--ribbon, 56px));
+  height: calc(100dvh - var(--top) - var(--ribbon, 56px) - var(--bar, 0px));
 }
 .stream { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 32px; scrollbar-width: thin; scrollbar-color: var(--highest) transparent; min-height: 0; }
 .stream-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 16px; border-radius: var(--r-md); background: var(--low); }
@@ -555,58 +555,59 @@ dialog.sheet.center[open] { animation: rise 0.25s cubic-bezier(.2, .8, .2, 1); }
 .or { text-align: center; color: var(--muted); font: 700 10px/14px var(--head); letter-spacing: 0.1em; text-transform: uppercase; }
 .city-chosen { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--mint-wash); color: var(--mint-fixed); font: 600 15px/20px var(--head); }
 
-/* ---------- sign-up: the front door ---------- */
+/* ---------- first load: straight in as a guest ---------- */
 
-.door-page { min-height: 100dvh; display: grid; grid-template-columns: 1.1fr 1fr; }
-.street { position: relative; overflow: hidden; background: #070910; }
-.street svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.door-form { display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 40px clamp(20px, 5vw, 72px); max-width: 560px; }
-.door-form h1 { font: 700 56px/64px var(--head); letter-spacing: -0.03em; }
-.door-form h1 em { font-style: normal; color: var(--mint); text-shadow: 0 0 24px rgba(0, 255, 163, 0.45); }
-.door-form .lede { font: 400 16px/26px var(--body); color: var(--on-var); }
-.door-form .caption { min-height: 22px; font: 600 13px/22px var(--head); color: var(--amber); letter-spacing: 0.02em; }
-.door-form .caption.bad { color: var(--error); }
-.door-form .fine { font: 400 12px/18px var(--body); color: var(--muted); }
-.door-form .btn-mint { padding: 16px; font-size: 18px; }
-.door-form .top { display: flex; align-items: center; justify-content: space-between; }
-.door-form .top a { font: 600 12px/16px var(--head); color: var(--on-var); text-decoration: none; letter-spacing: 0.04em; }
-.door-form .top a:hover { color: var(--on); }
+.start-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: radial-gradient(60% 50% at 50% 45%, rgba(0, 255, 163, 0.07), transparent 70%), var(--lowest); }
+.start { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; max-width: 420px; }
+.start .brand-mark { width: 56px; height: 56px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--line-strong), 0 0 36px rgba(0, 255, 163, 0.35); animation: pulse 2.2s ease-in-out infinite; }
+.start .brand-mark svg { width: 32px; height: 32px; }
+.start h1 { font: 700 28px/34px var(--head); letter-spacing: -0.01em; }
+.start h1 b { color: var(--mint); text-shadow: 0 0 24px rgba(0, 255, 163, 0.45); font-weight: 700; }
+.start p { color: var(--on-var); }
+.start .row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
 
-.street .win rect { fill: #0a0b12; stroke: #33343e; stroke-width: 2; transition: fill 0.5s, filter 0.5s; }
-.street .neon-text { opacity: 0.3; transition: opacity 0.6s; }
-.street[data-level="1"] .neon-text { opacity: 0.5; }
-.street[data-level="2"] .neon-text { opacity: 0.75; }
-.street[data-level="3"] .neon-text { opacity: 1; }
-.street .win.lit rect { fill: #ffb86b; filter: url(#winGlow); }
-.street .win .sill { fill: #2a2d38 !important; stroke: none; filter: none !important; }
-.street .win .shade { stroke: none; }
-.street .win.lit .shade { fill: #ed9000; }
-.street .lamp-light { opacity: 0.55; }
-.street .door-panel { transform-box: fill-box; transform-origin: left center; transition: transform 1s cubic-bezier(.5, 0, .2, 1); }
-.street .door-glow { opacity: 0; transition: opacity 0.9s; }
-.street .door-light { fill: #ffd9a8; }
-.street .neon { fill: none; stroke: var(--mint); stroke-width: 2; filter: url(#neon); opacity: 0.25; transition: opacity 0.6s; }
-.street[data-level="3"] .neon { opacity: 1; }
-.street[data-level="1"] .neon { opacity: 0.45; }
-.street[data-level="2"] .neon { opacity: 0.7; }
-.street .walker { opacity: 0; transform-box: view-box; transform-origin: 200px 440px; }
-.street.open .door-panel { transform: scaleX(0.12) skewY(-6deg); }
-.street.open .door-glow { opacity: 1; }
-.street.open .walker { animation: walkout 1.8s 0.7s cubic-bezier(.3, .1, .3, 1) forwards; }
-.street .walker .legs { animation: none; }
-.street.open .walker .step { animation: stepbob 0.36s 0.7s ease-in-out 5; }
-.street .stars circle { fill: #c9d4ff; animation: twinkle 3s ease-in-out infinite; }
-.street .stars circle:nth-child(2n) { animation-delay: -1.2s; }
-.street .stars circle:nth-child(3n) { animation-delay: -2s; }
-.street.shake .facade { animation: jolt 0.4s ease-in-out; }
-@keyframes walkout {
-  0% { opacity: 0; transform: translate(0, 0) scale(0.55); }
-  15% { opacity: 1; }
-  100% { opacity: 1; transform: translate(0, 60px) scale(1.25); }
-}
-@keyframes stepbob { 50% { transform: translateY(-3px); } }
-@keyframes twinkle { 50% { opacity: 0.3; } }
-@keyframes jolt { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-4px); } 65% { transform: translateX(3px); } }
+/* ---------- guest and view-only banners ---------- */
+
+.guest-bar { position: relative; z-index: 60; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 7px 44px 7px var(--gutter); background: linear-gradient(90deg, rgba(0, 255, 163, 0.14), rgba(0, 255, 163, 0.06)); border-bottom: 1px solid rgba(0, 255, 163, 0.18); font: 500 13px/18px var(--body); color: var(--on); }
+.guest-bar b { font-weight: 600; }
+.guest-bar .btn { padding: 6px 12px; font-size: 12px; }
+.guest-bar a.link { color: var(--on-var); font: 600 12px/16px var(--head); text-decoration: none; }
+.guest-bar a.link:hover { color: var(--on); }
+.guest-bar .x { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; background: none; }
+.guest-bar.ro { background: var(--amber-wash); border-bottom-color: rgba(255, 184, 107, 0.25); }
+
+/* ---------- first-visit tips on Tonight ---------- */
+
+.tips { position: fixed; z-index: 70; right: calc(var(--gutter) + 72px); bottom: var(--gutter); width: min(360px, calc(100vw - 32px)); padding: 18px 18px 14px; border-radius: var(--r-lg); background: rgba(17, 19, 27, 0.92); backdrop-filter: blur(18px); border: 1px solid var(--line-strong); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+.tips h3 { font: 700 15px/20px var(--head); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.tips ol { margin: 0 0 12px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.tips li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 19px; color: var(--on-var); }
+.tips li .ms { color: var(--mint); font-size: 20px; }
+
+/* ---------- join: sign up or sign in, over the London map ---------- */
+
+.join-page { overflow: hidden; height: 100dvh; background: var(--lowest); }
+.join-map { position: fixed; inset: 0; }
+.join-shade { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(60% 55% at 50% 50%, rgba(12, 14, 22, 0.2), rgba(12, 14, 22, 0.86) 100%); }
+.join-top { position: fixed; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 24px; pointer-events: none; }
+.join-top > * { pointer-events: auto; }
+.join-top .where { display: flex; align-items: center; gap: 8px; font: 600 12px/16px var(--head); letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-var); }
+.join-top .where b { color: var(--mint); }
+.join-card { position: fixed; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 120px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 28px 28px 20px; border-radius: var(--r-xl); background: rgba(17, 19, 27, 0.74); border: 1px solid var(--line); backdrop-filter: blur(18px) saturate(1.2); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 255, 163, 0.06); }
+.join-card h1 { font: 700 36px/40px var(--head); letter-spacing: -0.03em; }
+.join-card h1 em { font-style: normal; color: var(--mint); text-shadow: 0 0 24px rgba(0, 255, 163, 0.45); }
+.join-card .lede { color: var(--on-var); font-size: 14px; line-height: 21px; }
+.join-card .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.join-card .field input.ok { border-color: rgba(0, 255, 163, 0.5); }
+.join-card .btn-mint { padding: 15px; font-size: 17px; margin-top: 4px; }
+.join-card .alt { text-align: center; color: var(--on-var); font-size: 13px; }
+.join-card .alt button { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; color: var(--on); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.join-card .fine { font-size: 12px; line-height: 18px; color: var(--muted); }
+.join-card .qloo { font: 600 11px/16px var(--head); letter-spacing: 0.04em; color: var(--on-var); border-top: 1px solid var(--line); padding-top: 10px; }
+.strands { display: flex; gap: 6px; align-items: center; font: 600 11px/16px var(--head); letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-var); }
+.strands i { width: 22px; height: 4px; border-radius: 4px; background: var(--highest); transition: background 0.3s, box-shadow 0.3s; }
+.strands i.on { background: var(--hue); box-shadow: 0 0 10px var(--hue); }
+.strands span { margin-left: 6px; }
 
 /* ---------- venue dashboard ---------- */
 
@@ -668,9 +669,13 @@ dialog.sheet.center[open] { animation: rise 0.25s cubic-bezier(.2, .8, .2, 1); }
   .compact .media { height: 140px; }
   dialog.sheet { width: 100vw; margin: auto 0 0; height: 92dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; border-left: 0; border-top: 1px solid var(--line-strong); }
   dialog.sheet[open] { animation: rise 0.25s cubic-bezier(.2, .8, .2, 1); }
-  .door-page { grid-template-columns: 1fr; grid-template-rows: 40dvh auto; }
-  .door-form { padding: 20px 16px 32px; max-width: none; }
-  .door-form h1 { font-size: 40px; line-height: 48px; letter-spacing: -0.02em; }
+  .join-top { padding: 12px 16px; }
+  .join-top .where { display: none; }
+  .join-card { padding: 22px 18px 16px; top: auto; bottom: 16px; transform: translateX(-50%); max-height: calc(100dvh - 80px); }
+  .join-card h1 { font-size: 28px; line-height: 32px; }
+  .join-card .two { grid-template-columns: 1fr; }
+  .guest-bar { font-size: 12px; gap: 8px; }
+  .tips { left: 16px; right: 16px; bottom: 16px; width: auto; }
   .step-title { font-size: 28px; line-height: 36px; }
   .dash-head h1 { font-size: 28px; line-height: 36px; }
   .span-8, .span-7, .span-6, .span-5, .span-4 { grid-column: span 12; }
@@ -679,5 +684,5 @@ dialog.sheet.center[open] { animation: rise 0.25s cubic-bezier(.2, .8, .2, 1); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
-  .ping::before, .mk .halo, .mk .gem, .avatar .plumbob, .cas-preview, .street .stars circle { animation: none !important; }
+  .ping::before, .mk .halo, .mk .gem, .avatar .plumbob, .cas-preview, .start .brand-mark { animation: none !important; }
 }
