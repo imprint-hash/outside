@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#070910">
-<title>Outside · Step outside</title>
+<meta name="theme-color" content="#0c0e16">
+<title>Outside · Tonight in London</title>
 <meta name="description" content="Outside connects people by taste. Land anywhere, and see where your people are tonight. Built on Qloo's taste graph.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,94 +13,17 @@
 <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-<main class="door-page">
-  <section class="street" id="street" data-level="0" aria-hidden="true">
-    <svg viewBox="0 0 400 520" preserveAspectRatio="xMidYMax meet" overflow="visible">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05060c"/><stop offset=".7" stop-color="#11131b"/><stop offset="1" stop-color="#1b1830"/></linearGradient>
-        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d1f28"/><stop offset="1" stop-color="#15161e"/></linearGradient>
-        <radialGradient id="lampLight" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffb86b" stop-opacity=".45"/><stop offset="1" stop-color="#ffb86b" stop-opacity="0"/></radialGradient>
-        <radialGradient id="doorSpill" cx=".5" cy="0" r=".9"><stop offset="0" stop-color="#ffd9a8" stop-opacity=".75"/><stop offset="1" stop-color="#ffb86b" stop-opacity="0"/></radialGradient>
-        <filter id="winGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="neon" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <rect x="-800" y="-400" width="2000" height="920" fill="url(#sky)"/>
-      <g class="stars"><circle cx="30" cy="40" r="1.1"/><circle cx="90" cy="80" r=".9"/><circle cx="150" cy="30" r="1.2"/><circle cx="250" cy="55" r="1"/><circle cx="330" cy="28" r="1.2"/><circle cx="372" cy="90" r=".9"/><circle cx="200" cy="100" r=".8"/><circle cx="60" cy="140" r=".8"/></g>
-      <circle cx="330" cy="80" r="16" fill="#e2e1ee" opacity=".85"/><circle cx="337" cy="75" r="15" fill="#0a0b13"/>
-      <!-- the city behind -->
-      <path d="M-800 250 H0 h30 v-50 h24 v30 h20 v-70 h26 v90 h18 v-40 h30 v60 h0 V520 H-800Z" fill="#0f1119"/>
-      <path d="M270 250 v-60 h26 v-30 h22 v50 h20 v-80 h28 v70 h34 h800 V520 H270Z" fill="#0f1119"/>
-      <g fill="#ffb86b" opacity=".35"><rect x="80" y="190" width="4" height="5"/><rect x="88" y="205" width="4" height="5"/><rect x="300" y="200" width="4" height="5"/><rect x="345" y="160" width="4" height="5"/><rect x="352" y="182" width="4" height="5"/><rect x="40" y="215" width="4" height="5"/></g>
-
-      <!-- the house with the front door -->
-      <g class="facade">
-        <rect x="90" y="150" width="220" height="300" fill="url(#wall)"/>
-        <path d="M80 152 L200 96 L320 152Z" fill="#191b24"/>
-        <rect x="90" y="150" width="220" height="4" fill="#282a32"/>
-        <g class="win" data-w="0"><rect x="118" y="182" width="52" height="62" rx="3"/><rect class="shade" x="118" y="182" width="52" height="10" rx="3" fill="#15161e"/><rect class="sill" x="114" y="244" width="60" height="4"/></g>
-        <g class="win" data-w="1"><rect x="230" y="182" width="52" height="62" rx="3"/><rect class="shade" x="230" y="182" width="52" height="10" rx="3" fill="#15161e"/><rect class="sill" x="226" y="244" width="60" height="4"/></g>
-        <g class="win" data-w="2"><rect x="118" y="290" width="40" height="54" rx="3"/><rect class="sill" x="114" y="344" width="48" height="4"/></g>
-        <g class="win" data-w="3"><rect x="242" y="290" width="40" height="54" rx="3"/><rect class="sill" x="238" y="344" width="48" height="4"/></g>
-        <!-- neon sign over the door -->
-        <text class="neon-text" x="200" y="285" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="15" letter-spacing="3" fill="#00ffa3">OUTSIDE</text>
-        <rect class="neon" x="160" y="268" width="80" height="24" rx="6"/>
-        <!-- door -->
-        <rect x="168" y="304" width="64" height="146" fill="#0c0e16"/>
-        <rect class="door-glow door-light" x="172" y="308" width="56" height="142"/>
-        <g class="walker" id="walker"></g>
-        <g class="door-panel">
-          <rect x="172" y="308" width="56" height="142" fill="#33343e"/>
-          <rect x="178" y="316" width="44" height="54" rx="2" fill="none" stroke="#282a32" stroke-width="3"/>
-          <rect x="178" y="380" width="44" height="60" rx="2" fill="none" stroke="#282a32" stroke-width="3"/>
-          <circle cx="220" cy="382" r="3" fill="#ffb86b"/>
-        </g>
-        <rect x="160" y="450" width="80" height="8" fill="#282a32"/>
-        <rect x="152" y="458" width="96" height="8" fill="#1d1f28"/>
-      </g>
-      <!-- the street -->
-      <path class="door-glow" d="M168 466 L232 466 L300 520 L100 520Z" fill="url(#doorSpill)"/>
-      <rect x="-800" y="466" width="2000" height="400" fill="#0c0e16"/>
-      <path d="M-800 492 H1200" stroke="#33343e" stroke-width="2" stroke-dasharray="18 14"/>
-      <!-- street lamp -->
-      <path d="M48 466 V300 q0 -14 14 -14 h14" stroke="#33343e" stroke-width="4" fill="none"/>
-      <path d="M70 290 h18 l-4 8 h-10Z" fill="#33343e"/>
-      <path class="lamp-light" d="M72 298 L120 466 L20 466Z" fill="url(#lampLight)"/>
-      <circle cx="79" cy="298" r="3" fill="#ffd9a8"/>
-    </svg>
-  </section>
-
-  <form id="form" class="door-form" novalidate>
-    <div class="top">
-      <span class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="#00ffa3" stroke-width="1.8"/><rect x="8.5" y="6" width="7" height="12" rx="1" fill="#00ffa3" opacity=".25"/><circle cx="14" cy="12.5" r="1.1" fill="#00ffa3"/></svg></span><span class="brand-text"><span class="brand-name">Outside</span><span class="brand-by">Powered by Qloo</span></span></span>
-      <a href="/venue">For venues</a>
+<main class="start-page">
+  <section class="start" aria-live="polite" aria-busy="true" id="start">
+    <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="#00ffa3" stroke-width="1.8"/><rect x="8.5" y="6" width="7" height="12" rx="1" fill="#00ffa3" opacity=".25"/><circle cx="14" cy="12.5" r="1.1" fill="#00ffa3"/></svg></span>
+    <h1>Outside · <b>Finding your people in London…</b></h1>
+    <p id="startNote">No sign-up. You're a guest, with a taste to start from.</p>
+    <div class="row" id="startErr" hidden>
+      <button class="btn btn-mint" type="button" id="retry"><span class="ms" aria-hidden="true">refresh</span>Try again</button>
+      <a class="btn btn-ghost" href="/join#signin">Sign in</a>
     </div>
-    <h1 id="title">Step <em>outside</em></h1>
-    <p class="lede" id="lede">Land anywhere, and see where your people are tonight: places, events and people who share your taste.</p>
-
-    <label class="field" data-for="signup">
-      <span>First name</span>
-      <input id="firstName" name="firstName" autocomplete="given-name" maxlength="30" placeholder="Tolu">
-    </label>
-    <label class="field">
-      <span>Email</span>
-      <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@email.com">
-    </label>
-    <label class="field">
-      <span>Password</span>
-      <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
-    </label>
-    <label class="field" data-for="signup">
-      <span>Where's home?</span>
-      <input id="homeCity" name="homeCity" autocomplete="address-level2" maxlength="40" placeholder="Lagos, Houston, Manchester…">
-    </label>
-
-    <p id="caption" class="caption" aria-live="polite"></p>
-    <button id="go" class="btn btn-mint" type="submit" disabled>Outside</button>
-    <p id="error" class="error" role="alert" hidden></p>
-    <button id="switch" class="btn btn-ghost" type="button">I already have an account</button>
-    <p class="fine">People only ever see your first name, and only when you choose. Never your email.</p>
-  </form>
+  </section>
 </main>
-<script type="module" src="/signup.js"></script>
+<script type="module" src="/start.js"></script>
 </body>
 </html>
