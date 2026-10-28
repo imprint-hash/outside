@@ -62,7 +62,7 @@ These live in the server modules (`src/people.js`, `src/crowd.js`, `src/organise
 ## Architecture
 
 - **One API handler** (`src/router.js`, served by `api/index.js` on Vercel and `bin/serve.mjs` locally). Plain Node 20, no framework.
-- **Static front end** in `public/` (HTML, CSS and ES modules; Leaflet with OpenStreetMap tiles for the map).
+- **Static front end** in `public/` (HTML, CSS and ES modules; a 3D MapLibre GL map on free OpenFreeMap vector tiles, restyled dark).
 - **Storage**: Supabase Postgres, one table (`records`, keyed by collection and id, JSON documents) with Row Level Security on and no policies, so only the server's secret key can read or write. Schema in `supabase/schema.sql`. A local JSON file is used for tests and offline work.
 - **Event finding**: Claude with web search, once a day per city (`src/city-events.js`). Every event must have a title, a date in the next 120 days, a named performer, and a source link that was really among the pages searched.
 - **Crons** (Vercel): daily event refresh, and daily demo check-in renewal.

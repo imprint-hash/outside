@@ -6,6 +6,7 @@ import { api, esc, needSignIn } from "/api.js";
 import { $, icon, topbar, setHelloCount, ratingPill, facesRow, tripText, hoursFact, timeIn, dayIn, toast, sheetOpen, closeSheet, PLUMBOB, demoTag, demoCount } from "/ui.js";
 import { openPlace, openEvent, getCard, checkIn, cardCache } from "/card.js";
 import { openHere, openInbox, openChat, openSettings, openRate, pollInbox } from "/social.js";
+import { makeMap, setGlow, reduceMotion, PITCH, BEARING } from "/map3d.js";
 
 needSignIn();
 
@@ -43,20 +44,57 @@ function setRibbonHeight() {
 
 /* ---------- the map ---------- */
 
-const map = L.map("map", { zoomControl: false, attributionControl: true, preferCanvas: false }).setView([51.5072, -0.1276], 13);
-// CARTO's dark tiles now need an API key, so this uses OpenStreetMap's own
-// tiles (the plan's fallback), darkened in CSS to suit the night theme.
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom: 19,
-  className: "night-tiles",
-}).addTo(map);
-map.attributionControl.setPrefix(false);
-const layer = L.layerGroup().addTo(map);
-const markers = new Map();
-$("zoomIn").onclick = () => map.zoomIn();
-$("zoomOut").onclick = () => map.zoomOut();
-$("recenter").onclick = () => { const o = state.data?.origin; if (o) map.flyTo([o.lat, o.lon], 14); };
+// Made on the first load, once we know the city. null when WebGL is missing.
+let map = null;
+let mapOff = false;
+let introDone = false;
+let intro = null;
+let is3d = true;
+const markers = new Map(); // "place:id" -> maplibregl.Marker
+const ease = (opts) => (reduceMotion() ? map.jumpTo(opts) : map.flyTo(opts));
+
+function ensureMap(d) {
+  if (map || mapOff) return map;
+  const c = d.origin || d.city;
+  map = makeMap($("map"), [c.lon, c.lat]);
+  if (!map) { showMapOff(); return null; }
+  map.on("error", (e) => { if (/webgl/i.test(e?.error?.message || "")) showMapOff(); });
+  map.once("style.load", () => setTimeout(runIntro, 400));
+  map.on("click", () => clearHot());
+  return map;
+}
+
+function showMapOff() {
+  mapOff = true;
+  try { map?.remove(); } catch {}
+  map = null;
+  markers.clear();
+  $("map").outerHTML = `<div class="map-off" role="note">${icon("map")}<p>This browser can't draw the 3D map, so here's the list only.</p></div>`;
+  document.querySelector(".map-tools")?.remove();
+  document.querySelector(".legend")?.remove();
+}
+
+// Opening shot: flat over the city, then glide down to where you're staying.
+function runIntro() {
+  if (introDone || !map || !intro) return;
+  introDone = true;
+  const cam = { ...intro, pitch: PITCH, bearing: BEARING };
+  if (reduceMotion()) map.jumpTo(cam);
+  else map.flyTo({ ...cam, duration: 3500, curve: 1.3, essential: false });
+}
+
+$("zoomIn").onclick = () => map?.zoomIn();
+$("zoomOut").onclick = () => map?.zoomOut();
+$("recenter").onclick = () => { const o = state.data?.origin; if (o && map) ease({ center: [o.lon, o.lat], zoom: 14.5, pitch: is3d ? PITCH : 0, bearing: is3d ? BEARING : 0 }); };
+$("pitchToggle").onclick = () => {
+  if (!map) return;
+  is3d = !is3d;
+  const b = $("pitchToggle");
+  b.textContent = is3d ? "2D" : "3D";
+  b.setAttribute("aria-pressed", String(is3d));
+  b.setAttribute("aria-label", is3d ? "Flat map" : "3D map");
+  map.easeTo({ pitch: is3d ? PITCH : 0, bearing: is3d ? BEARING : 0, duration: reduceMotion() ? 0 : 700 });
+};
 
 const KIND_ICON = { restaurant: "restaurant", bar: "local_bar", lounge: "nightlife", club: "graphic_eq" };
 const EVENT_ICON = { concert: "music_note", festival: "festival", party: "celebration", comedy: "theater_comedy", other: "event" };
@@ -75,41 +113,79 @@ function venueLook(v) {
   return { cls: "quiet", size: 12, ico: null };
 }
 
+function addMarker(key, lngLat, html, { size, z = 0, label, onPick }) {
+  const el = document.createElement("div");
+  el.className = "mkwrap";
+  el.style.cssText = `width:${size}px;height:${size}px;z-index:${z}`;
+  el.innerHTML = html;
+  if (onPick) {
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", label);
+    el.title = label;
+    el.addEventListener("click", (e) => { e.stopPropagation(); onPick(); });
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPick(); } });
+    el.addEventListener("mouseenter", () => hot(key, "map"));
+    el.addEventListener("mouseleave", () => clearHot());
+  }
+  const m = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat(lngLat).addTo(map);
+  if (key) markers.set(key, m);
+  return m;
+}
+
 function drawMarkers() {
-  layer.clearLayers();
-  markers.clear();
   const d = state.data;
-  if (!d) return;
+  if (!d || !ensureMap(d)) return;
+  for (const m of markers.values()) m.remove();
+  markers.clear();
+  map.__you?.remove();
   const pts = [];
+  const glow = [];
   if (d.origin) {
-    L.marker([d.origin.lat, d.origin.lon], { icon: L.divIcon({ className: "", html: `<div class="mk you" style="width:14px;height:14px"><span class="core" style="width:14px;height:14px"></span></div>`, iconSize: [14, 14] }), keyboard: false, interactive: false, zIndexOffset: -100 })
-      .bindTooltip(esc(d.origin.label || "You"), { direction: "top" }).addTo(layer);
-    pts.push([d.origin.lat, d.origin.lon]);
+    map.__you = addMarker(null, [d.origin.lon, d.origin.lat], `<div class="mk you" style="width:14px;height:14px" title="${esc(d.origin.label || "You")}"><span class="core" style="width:14px;height:14px"></span></div>`, { size: 14, z: 1 });
+    pts.push([d.origin.lon, d.origin.lat]);
   }
   for (const v of d.venues) {
     if (!v.location) continue;
     const look = venueLook(v);
     const label = v.match != null ? `${v.name} (${v.match}%)` : v.name;
-    const m = L.marker([v.location.lat, v.location.lon], {
-      icon: L.divIcon({ className: "", html: markerHtml({ ...look, label }), iconSize: [look.size, look.size] }),
-      title: v.name, alt: v.name, riseOnHover: true,
-      zIndexOffset: look.cls === "like" ? 1000 : look.cls === "fit" ? 500 : 0,
-    }).on("click", () => select({ type: "place", id: v.id }, { from: "map" })).addTo(layer);
-    markers.set(`place:${v.id}`, m);
-    pts.push([v.location.lat, v.location.lon]);
+    addMarker(`place:${v.id}`, [v.location.lon, v.location.lat], markerHtml({ ...look, label }), {
+      size: look.size, label: v.name, z: look.cls === "like" ? 1000 : look.cls === "fit" ? 500 : 10,
+      onPick: () => select({ type: "place", id: v.id }, { from: "map" }),
+    });
+    if (v.crowd?.likeYou > 0) glow.push({ lon: v.location.lon, lat: v.location.lat, like: v.crowd.likeYou });
+    pts.push([v.location.lon, v.location.lat]);
   }
   for (const e of d.events) {
     if (!Number.isFinite(e.venue?.lat) || e.venue.approximate) continue;
     const label = e.fit != null ? `${e.title} (${e.fit}%)` : e.title;
-    const m = L.marker([e.venue.lat, e.venue.lon], {
-      icon: L.divIcon({ className: "", html: markerHtml({ cls: "event", size: 24, ico: EVENT_ICON[e.eventKind] || "event", label }), iconSize: [24, 24] }),
-      title: e.title, alt: e.title, riseOnHover: true, zIndexOffset: 800,
-    }).on("click", () => select({ type: "event", id: e.id }, { from: "map" })).addTo(layer);
-    markers.set(`event:${e.id}`, m);
+    addMarker(`event:${e.id}`, [e.venue.lon, e.venue.lat], markerHtml({ cls: "event", size: 24, ico: EVENT_ICON[e.eventKind] || "event", label }), {
+      size: 24, label: e.title, z: 800, onPick: () => select({ type: "event", id: e.id }, { from: "map" }),
+    });
   }
-  if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.08), { maxZoom: 14 });
-  else if (pts.length) map.setView(pts[0], 14);
-  else map.setView([d.city.lat, d.city.lon], 12);
+  setGlow(map, glow);
+  if (introDone) return;
+  // Where the opening shot lands: on your stay, close enough to see what's around.
+  let zoom = 14.2;
+  if (pts.length > 1) {
+    const b = pts.reduce((bb, p) => bb.extend(p), new maplibregl.LngLatBounds(pts[0], pts[0]));
+    const cam = map.cameraForBounds(b, { padding: 60, maxZoom: 14.5 });
+    if (cam?.zoom) zoom = Math.max(13.8, Math.min(14.8, cam.zoom + 1));
+  }
+  const center = d.origin ? [d.origin.lon, d.origin.lat] : pts[0] || [d.city.lon, d.city.lat];
+  intro = intro || { center, zoom: pts.length ? zoom : 12 };
+  if (map.style && map.isStyleLoaded()) runIntro();
+}
+
+/* ---------- list hover <-> marker highlight ---------- */
+
+function clearHot() {
+  document.querySelectorAll(".mkwrap.hot, .card.hot").forEach((x) => x.classList.remove("hot"));
+}
+function hot(key, from) {
+  clearHot();
+  if (from === "list") markers.get(key)?.getElement().classList.add("hot");
+  else document.querySelector(`.card[data-key="${CSS.escape(key)}"]`)?.classList.add("hot");
 }
 
 /* ---------- popover ---------- */
@@ -156,8 +232,9 @@ function eventPopup(e) {
   </div>`;
 }
 
-const popup = L.popup({ className: "pop", maxWidth: 304, minWidth: 304, autoPanPadding: [24, 24], offset: [0, -8] });
-map.getContainer().addEventListener("click", (e) => {
+const popup = typeof maplibregl === "undefined" ? null : new maplibregl.Popup({ className: "pop", maxWidth: "304px", offset: 16, focusAfterOpen: false });
+$("split").addEventListener("click", (e) => {
+  if (!e.target.closest(".maplibregl-popup")) return;
   const p = e.target.closest("[data-open-place]");
   const ev = e.target.closest("[data-open-event]");
   if (p) goPlace(p.dataset.openPlace);
@@ -178,7 +255,7 @@ async function select(item, { from = "list" } = {}) {
   document.querySelector(`.card[data-key="${item.type}:${CSS.escape(item.id)}"]`)?.classList.add("selected");
   document.querySelectorAll(".mk.on").forEach((m) => m.classList.remove("on"));
   const mk = markers.get(`${item.type}:${item.id}`);
-  mk?.getElement()?.querySelector(".mk")?.classList.add("on");
+  mk?.getElement().querySelector(".mk")?.classList.add("on");
 
   if (from === "list" && mobile()) {
     if (item.type === "place") goPlace(item.id); else location.hash = `event/${item.id}`;
@@ -188,18 +265,18 @@ async function select(item, { from = "list" } = {}) {
     if (item.type === "place") goPlace(item.id); else location.hash = `event/${item.id}`;
     return;
   }
-  if (from === "list") map.flyTo(mk.getLatLng(), Math.max(map.getZoom(), 14), { duration: 0.6 });
+  if (from === "list") { introDone = true; map.stop(); ease({ center: mk.getLngLat(), zoom: Math.max(map.getZoom(), 14.5), duration: 900 }); }
   if (from === "map") document.querySelector(`.card[data-key="${item.type}:${CSS.escape(item.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
   if (item.type === "event") {
-    popup.setLatLng(mk.getLatLng()).setContent(eventPopup(findEvent(item.id))).openOn(map);
+    popup.setLngLat(mk.getLngLat()).setHTML(eventPopup(findEvent(item.id))).addTo(map);
     return;
   }
   const v = findVenue(item.id);
-  popup.setLatLng(mk.getLatLng()).setContent(placePopup(v, cardCache.get(v.id))).openOn(map);
+  popup.setLngLat(mk.getLngLat()).setHTML(placePopup(v, cardCache.get(v.id))).addTo(map);
   if (!cardCache.get(v.id)) {
     const card = await getCard(v.id, v.match).catch(() => null);
-    if (card && state.selected?.id === v.id && popup.isOpen()) popup.setContent(placePopup(v, card));
+    if (card && state.selected?.id === v.id && popup.isOpen()) popup.setHTML(placePopup(v, card));
   }
 }
 
@@ -369,6 +446,11 @@ $("streamBody").addEventListener("click", async (e) => {
   }
   select({ type, id });
 });
+$("streamBody").addEventListener("mouseover", (e) => {
+  const card = e.target.closest(".card[data-key]");
+  if (card && !card.classList.contains("hot")) hot(card.dataset.key, "list");
+});
+$("streamBody").addEventListener("mouseleave", () => clearHot());
 $("streamBody").addEventListener("keydown", (e) => {
   if ((e.key === "Enter" || e.key === " ") && e.target.classList?.contains("card")) { e.preventDefault(); e.target.click(); }
 });
@@ -488,7 +570,9 @@ route();
   const [type, ...rest] = (f || "").split(":");
   if ((type === "place" || type === "event") && rest.length && markers.has(`${type}:${rest.join(":")}`)) {
     const mk = markers.get(`${type}:${rest.join(":")}`);
-    map.setView(mk.getLatLng(), 14);
+    // Land the opening shot on the shared place instead of your stay.
+    intro = { center: mk.getLngLat().toArray(), zoom: 15 };
+    if (introDone) ease({ center: intro.center, zoom: 15 });
     select({ type, id: rest.join(":") }, { from: "map" });
   }
 }
