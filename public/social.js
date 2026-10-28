@@ -59,7 +59,7 @@ export async function openHere(ctx) {
         <span class="av">${avatarSVG(p.avatar, { size: 52, plumbob: p.match >= 60 ? "strong" : p.match >= 40 ? "okay" : null, label: p.firstName || "" })}</span>
         <span class="info">
           <b>${p.firstName ? nameOf(p.firstName) : "Someone like you"}${nameTag(p.firstName)}${demoTag(p)}${p.verified ? ` <span class="ms mint" title="Verified" aria-label="Verified">verified</span>` : ""}</b>
-          ${p.match != null ? `<span class="tag tag-mint" style="align-self:flex-start">${p.match}% like you</span>` : ""}
+          ${p.match != null ? `<span class="tag tag-coral" style="align-self:flex-start">${p.match}% like you</span>` : ""}
           ${p.bubbles?.length ? `<span class="bubbles">${p.bubbles.map((b) => `<span class="bubble">${esc(b)}</span>`).join("")}</span>` : ""}
           ${p.line ? `<small class="faint">${esc(p.line)}</small>` : ""}
         </span>
@@ -106,7 +106,7 @@ export async function openInbox(ctx) {
       ${hellos.length ? `<ul class="list-plain">${hellos.map((h) => `<li class="person">
         <span class="av">${avatarSVG(h.avatar, { size: 52, plumbob: "yes" })}</span>
         <span class="info"><b>${nameOf(h.firstName)}${nameTag(h.firstName)}</b>
-          ${h.match != null ? `<span class="tag tag-mint" style="align-self:flex-start">${h.match}% like you</span>` : ""}
+          ${h.match != null ? `<span class="tag tag-coral" style="align-self:flex-start">${h.match}% like you</span>` : ""}
           ${h.line ? `<small class="muted">${esc(h.line)}</small>` : ""}
           <small class="faint">At ${esc(h.venue || "the same place")} · ${esc(ago(h.at))}</small>
           <span style="display:flex;gap:6px;margin-top:4px">
@@ -341,6 +341,10 @@ export function openSettings(ctx) {
     <section class="panel"><h3>${icon("share")}Share my night</h3>
       <p class="muted" style="font-size:13px">Send a trusted friend where you are and since when. You send it yourself; Outside sends nothing.</p>
       <button class="btn btn-mint" type="button" data-act="share">${icon("ios_share")}Share my night</button>
+    </section>
+    <section class="panel"><h3>${icon("auto_awesome", "coral")}Outside Premium · planned</h3>
+      <p class="muted" style="font-size:13px">Plan ahead in a new city, unlimited hellos and your matches' full taste. Everything is free while the judges look around.</p>
+      <a class="btn btn-ghost" href="/plans">See how Outside makes money</a>
     </section>
     ${u.role === "organiser" ? `<a class="btn btn-ghost" href="/venue">${icon("storefront")}Your venue dashboard</a>` : `<a class="btn btn-ghost" href="/venue">${icon("storefront")}Run a venue? See your crowd</a>`}
     <button class="btn btn-danger" type="button" data-act="out">${icon("logout")}Sign out</button>

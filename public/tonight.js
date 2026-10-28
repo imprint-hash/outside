@@ -3,7 +3,7 @@
 // for a popover, open it for the full card. Everything shown comes from the
 // API; missing fields are left out.
 import { api, esc, needSignIn, leaveDemoVenue } from "/api.js";
-import { $, icon, topbar, setHelloCount, ratingPill, facesRow, tripText, hoursFact, timeIn, dayIn, toast, sheetOpen, closeSheet, PLUMBOB, demoTag, demoCount } from "/ui.js";
+import { $, icon, topbar, setHelloCount, ratingPill, facesRow, tripText, hoursFact, timeIn, dayIn, toast, sheetOpen, closeSheet, PLUMBOB, demoTag, demoCount, ratingsHaveDemo } from "/ui.js";
 import { openPlace, openEvent, getCard, checkIn, cardCache, proofChip, toggleProof } from "/card.js";
 import { openHere, openInbox, openChat, openSettings, openRate, pollInbox } from "/social.js";
 import { makeMap, setGlow, reduceMotion, PITCH, BEARING } from "/map3d.js";
@@ -34,7 +34,8 @@ else if (!user.city) location.replace("/taste#city");
 state.me = user;
 state.checkin = checkin;
 topbar({ active: "tonight", user, cityLabel: cityLabel(user) });
-firstVisitTips();
+// The headline first; the three tips once it has faded.
+if (!mapHello(firstVisitTips)) firstVisitTips();
 setRibbonHeight();
 addEventListener("resize", setRibbonHeight);
 
@@ -55,6 +56,31 @@ function firstVisitTips() {
     <button class="btn btn-mint btn-sm" type="button">Got it</button>`;
   box.querySelector("button").onclick = () => { try { localStorage.setItem(KEY, "1"); } catch {} box.remove(); };
   document.body.append(box);
+}
+
+/**
+ * The big friendly line over the map, on a first visit only. Fades after the
+ * first touch of the map or about 10 seconds; remembered on this browser.
+ */
+function mapHello(then) {
+  const KEY = "outside.helloSeen";
+  try { if (localStorage.getItem(KEY)) return false; } catch { return false; }
+  const box = $("mapHello");
+  if (!box) return false;
+  box.hidden = false;
+  let gone = false;
+  const bye = () => {
+    if (gone) return;
+    gone = true;
+    try { localStorage.setItem(KEY, "1"); } catch {}
+    box.classList.add("out");
+    setTimeout(() => { box.remove(); then?.(); }, reduceMotion() ? 0 : 700);
+  };
+  const t = setTimeout(bye, 10_000);
+  const touch = () => { clearTimeout(t); bye(); };
+  const wrap = document.querySelector(".mapwrap");
+  for (const ev of ["pointerdown", "wheel", "keydown"]) wrap?.addEventListener(ev, touch, { once: true, passive: true });
+  return true;
 }
 
 function cityLabel(u) {
@@ -94,6 +120,7 @@ function showMapOff() {
   $("map").outerHTML = `<div class="map-off" role="note">${icon("map")}<p>This browser can't draw the 3D map, so here's the list only.</p></div>`;
   document.querySelector(".map-tools")?.remove();
   document.querySelector(".legend")?.remove();
+  document.getElementById("mapHello")?.remove();
 }
 
 // Opening shot: flat over the city, then glide down to where you're staying.
@@ -120,18 +147,22 @@ $("pitchToggle").onclick = () => {
 
 const KIND_ICON = { restaurant: "restaurant", bar: "local_bar", lounge: "nightlife", club: "graphic_eq" };
 const EVENT_ICON = { concert: "music_note", festival: "festival", party: "celebration", comedy: "theater_comedy", other: "event" };
+// Each kind has its own colour everywhere (pins, tags, icons): see .k-* in app.css.
+const KIND_CLASS = { restaurant: "food", bar: "drinks", lounge: "drinks", club: "music" };
+const kindOf = (v) => KIND_CLASS[v?.category] || "";
+const eventKindOf = (e) => (e?.eventKind === "comedy" ? "comedy" : "event");
 
-function markerHtml({ cls, size, ico, label, plumbob }) {
+function markerHtml({ cls, size, ico, label, plumbob, kind = "" }) {
   const gem = plumbob && PLUMBOB[plumbob]
     ? `<svg class="gem" viewBox="0 0 16 28" style="color:${PLUMBOB[plumbob]}"><path d="M8 0 L16 12 L8 28 L0 12Z" fill="currentColor"/><path d="M8 0 L16 12 L8 12Z" fill="rgba(255,255,255,.45)"/></svg>`
     : "";
-  return `<div class="mk ${cls}" style="width:${size}px;height:${size}px">${cls === "quiet" ? "" : `<span class="halo"></span>`}${gem}<span class="core" style="width:${size}px;height:${size}px">${ico ? icon(ico) : ""}</span><span class="tag-label"><i></i>${esc(label)}</span></div>`;
+  return `<div class="mk ${cls}${kind ? ` k-${kind}` : ""}" style="width:${size}px;height:${size}px">${cls === "quiet" ? "" : `<span class="halo"></span>`}${gem}<span class="core" style="width:${size}px;height:${size}px">${ico ? icon(ico) : ""}</span><span class="tag-label"><i></i>${esc(label)}</span></div>`;
 }
 
 function venueLook(v) {
   const like = v.crowd?.likeYou || 0;
   if (like > 0) return { cls: "like", size: 20 + Math.min(like, 6) * 3, ico: KIND_ICON[v.category] || "group", plumbob: v.crowd.plumbob };
-  if (v.match != null) return { cls: "fit", size: 18, ico: KIND_ICON[v.category] || "place" };
+  if (v.match != null) return { cls: "fit", size: 18, ico: KIND_ICON[v.category] || "place", kind: kindOf(v) };
   return { cls: "quiet", size: 12, ico: null };
 }
 
@@ -181,7 +212,7 @@ function drawMarkers() {
   for (const e of d.events) {
     if (!Number.isFinite(e.venue?.lat) || e.venue.approximate) continue;
     const label = e.fit != null ? `${e.title} (${e.fit}%)` : e.title;
-    addMarker(`event:${e.id}`, [e.venue.lon, e.venue.lat], markerHtml({ cls: "event", size: 24, ico: EVENT_ICON[e.eventKind] || "event", label }), {
+    addMarker(`event:${e.id}`, [e.venue.lon, e.venue.lat], markerHtml({ cls: "event", size: 24, ico: EVENT_ICON[e.eventKind] || "event", label, kind: eventKindOf(e) }), {
       size: 24, label: e.title, z: 800, onPick: () => select({ type: "event", id: e.id }, { from: "map" }),
     });
   }
@@ -230,7 +261,7 @@ function placePopup(v, card) {
       ${summary ? `<p class="muted clamp3" style="font-size:12px;line-height:18px">${esc(summary)}</p>` : ""}
     </div>
     <div class="tiles">
-      <div><b>${like}</b><small>Like you here now${demoCount(v.crowd?.demo)}</small></div>
+      <div><b>${like}</b><small>Your people here now${demoCount(v.crowd?.demo)}</small></div>
       ${v.trip ? `<div><b class="amber">${v.trip.minutes}m</b><small>${v.trip.mode === "walk" ? "Walk" : "Drive"} away</small></div>` : `<div><b class="amber">${v.crowd?.here || 0}</b><small>Checked in${demoCount(v.crowd?.demo)}</small></div>`}
     </div>
     <button class="btn btn-mint btn-block btn-sm" type="button" data-open-place="${esc(v.id)}">${icon("open_in_full")}Open place</button>
@@ -247,7 +278,7 @@ function eventPopup(e) {
       ${top.length ? `<div class="kw">${top.map((a) => `<div class="kw-row"><span>${esc(a.name)}${a.youLove ? " · you love them" : ""}</span><span class="n">${a.fit}%</span><span class="bar"><i style="width:${a.fit}%"></i></span></div>`).join("")}</div>` : `<p class="faint">Qloo doesn't know this lineup yet.</p>`}
     </div>
     <div class="tiles">
-      <div><b>${e.crowd?.likeYou ?? 0}</b><small>Like you at the venue${demoCount(e.crowd?.demo)}</small></div>
+      <div><b>${e.crowd?.likeYou ?? 0}</b><small>Your people at the venue${demoCount(e.crowd?.demo)}</small></div>
       <div><b class="amber">${esc(timeIn(e.starts, tz))}</b><small>${esc(dayIn(e.starts, tz).wd)} · ${esc(e.venue?.name || "")}</small></div>
     </div>
     <button class="btn btn-mint btn-block btn-sm" type="button" data-open-event="${esc(e.id)}">${icon("open_in_full")}Open event</button>
@@ -313,7 +344,7 @@ function roomHtml(crowd, faces = []) {
     ${facesRow(faces, like || crowd.here)}
     <div class="txt ${like ? "" : "quiet"}">
       <span>${like ? `${like} ${like === 1 ? "person" : "people"} with your taste` : `${crowd.here} checked in`}</span>
-      <small>${like ? "Checked in right now" : "None share your taste yet"}${crowd.demo ? ` · ${crowd.demo} demo` : ""}</small>
+      <small>${like ? "Checked in right now" : "None share your taste yet"}</small>
     </div>
   </div>`;
 }
@@ -325,44 +356,50 @@ function featureVenue(v0) {
   const faces = card?.crowd?.faces || [];
   const quote = card?.ours?.notes?.[0];
   const facts = [v.price && `<span class="fact">${esc(v.price)}</span>`, hoursFact(v.hours)].filter(Boolean).join("");
-  return `<article class="card feature" tabindex="0" data-key="place:${esc(v.id)}" aria-label="${esc(v.name)}">
+  const kind = kindOf(v);
+  // One demo line per card instead of a label on every number.
+  const demo = [v.crowd?.demo && "people", ratingsHaveDemo(card?.ours) && "ratings", quote?.demo && "notes"].filter(Boolean);
+  return `<article class="card feature${kind ? ` k-${kind}` : ""}" tabindex="0" data-key="place:${esc(v.id)}" aria-label="${esc(v.name)}">
     <div class="media">
       ${v.image ? `<img src="${esc(v.image)}" alt="" loading="lazy">` : `<div class="media-blank">${icon(KIND_ICON[v.category] || "storefront")}</div>`}
-      <span class="tl glass-tag">${icon(v.crowd?.likeYou ? "groups" : "verified")}${v.crowd?.likeYou ? `Your people are here${demoCount(v.crowd.demo)}` : esc(v.fit || CAT_NAME[v.category] || "Place")}</span>
+      <span class="tl glass-tag${v.crowd?.likeYou ? " people" : ""}">${icon(v.crowd?.likeYou ? "groups" : "verified")}${v.crowd?.likeYou ? "Your people are here" : esc(v.fit || CAT_NAME[v.category] || "Place")}</span>
       <span class="tr">${ratingPill({ all: v.rating, ours: card?.ours })}</span>
       ${v.trip ? `<span class="br glass-tag amber">${icon(v.trip.mode === "walk" ? "directions_walk" : "directions_car")}${esc(tripText(v.trip))}</span>` : ""}
     </div>
     <div class="body">
       <div>
         <div class="title-row"><h3>${esc(v.name)}</h3>${v.area ? `<span class="area">${esc(v.area)}</span>` : ""}</div>
-        ${CAT_NAME[v.category] ? `<p class="subtitle">${esc(CAT_NAME[v.category])}${v.fit ? ` · ${esc(v.fit)}` : ""}</p>` : ""}
+        ${CAT_NAME[v.category] ? `<p class="subtitle"><span class="kname">${icon(KIND_ICON[v.category] || "place")}${esc(CAT_NAME[v.category])}</span>${v.fit ? ` · ${esc(v.fit)}` : ""}</p>` : ""}
       </div>
       ${v.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${v.match}% match</span><span class="what">Your taste</span></div>${v.why ? `<p>${esc(v.why)}</p>` : ""}${proofChip(v.proof)}</div></div>` : ""}
       ${roomHtml(v.crowd, faces)}
       ${facts ? `<div class="facts">${facts}</div>` : ""}
-      ${quote ? `<blockquote class="quote">${icon("format_quote")}<span>“${esc(quote.note)}”${quote.because ? ` <span class="faint">· ${esc(quote.because)}</span>` : ""} ${demoTag(quote)}</span></blockquote>` : ""}
+      ${quote ? `<blockquote class="quote">${icon("format_quote")}<span>“${esc(quote.note)}”${quote.because ? ` <span class="faint">· ${esc(quote.because)}</span>` : ""}</span></blockquote>` : ""}
       <div class="actions">
         <button class="btn btn-mint btn-stack" type="button" data-act="ride">${icon("local_taxi")}Ride there</button>
         <button class="btn btn-stack" type="button" data-act="checkin">${icon("location_on", "mint")}${state.checkin?.venueId === v.id ? "Checked in" : "Check in"}</button>
-        <button class="btn btn-stack" type="button" data-act="hi">${icon("waving_hand", "amber")}Say hi${v.crowd?.likeYou ? ` (${v.crowd.likeYou})` : ""}</button>
+        <button class="btn btn-stack" type="button" data-act="hi">${icon("waving_hand", "coral")}Say hi${v.crowd?.likeYou ? ` (${v.crowd.likeYou})` : ""}</button>
       </div>
+      ${demo.length ? `<p class="demo-note">Includes demo ${demo.join(" and ").replace(/ and (?=.* and )/, ", ")}</p>` : ""}
     </div>
   </article>`;
 }
 
 function compactVenue(v) {
-  const meta = [v.area, CAT_NAME[v.category], v.price].filter(Boolean).map(esc).join(" · ");
+  const meta = [v.area, v.price].filter(Boolean).map(esc).join(" · ");
+  const kind = kindOf(v);
+  const word = v.fit || (v.match == null ? null : v.match >= 75 ? "Strong match" : v.match >= 50 ? "Good match" : null);
   const hasStats = v.rating != null || v.crowd?.likeYou || v.crowd?.here;
-  return `<article class="card compact" tabindex="0" data-key="place:${esc(v.id)}" aria-label="${esc(v.name)}">
-    <div class="media">${v.image ? `<img src="${esc(v.image)}" alt="" loading="lazy">` : `<div class="media-blank">${icon(KIND_ICON[v.category] || "storefront")}</div>`}
-      ${v.fit ? `<span class="tl glass-tag">${icon("verified")}${esc(v.fit)}</span>` : ""}</div>
+  return `<article class="card compact${kind ? ` k-${kind}` : ""}" tabindex="0" data-key="place:${esc(v.id)}" aria-label="${esc(v.name)}">
+    <div class="media">${v.image ? `<img src="${esc(v.image)}" alt="" loading="lazy">` : `<div class="media-blank">${icon(KIND_ICON[v.category] || "storefront")}</div>`}</div>
     <div class="body">
-      <div class="head"><h3>${esc(v.name)}</h3>${v.match != null ? `<span class="tag tag-mint">${v.match}% match</span>` : ""}</div>
-      ${meta ? `<p class="meta">${meta}${v.trip ? ` · ${esc(tripText(v.trip))}` : ""}</p>` : v.trip ? `<p class="meta">${esc(tripText(v.trip))}</p>` : ""}
-      ${hasStats ? `<div class="statline"><span>${v.rating != null ? `All: ${v.rating.toFixed(1)} ★` : ""}</span>${v.crowd?.likeYou ? `<span class="crowd">${v.crowd.likeYou} like you here${demoCount(v.crowd.demo)}</span>` : v.crowd?.here ? `<span class="faint">${v.crowd.here} checked in${demoCount(v.crowd.demo)}</span>` : ""}</div>` : ""}
+      <div class="head"><div class="tags">${CAT_NAME[v.category] ? `<span class="tag kind">${icon(KIND_ICON[v.category])}${esc(CAT_NAME[v.category])}</span>` : ""}${word ? `<span class="tag fitword">${esc(word)}</span>` : ""}</div><h3>${esc(v.name)}</h3></div>
+      ${meta || v.trip ? `<p class="meta">${[meta, v.trip ? esc(tripText(v.trip)) : ""].filter(Boolean).join(" · ")}</p>` : ""}
+      ${hasStats ? `<div class="statline"><span>${v.rating != null ? `${v.rating.toFixed(1)} ★` : ""}</span>${v.crowd?.likeYou ? `<span class="crowd">${v.crowd.likeYou} of your people here</span>` : v.crowd?.here ? `<span class="faint">${v.crowd.here} checked in</span>` : ""}</div>` : ""}
       ${v.hours?.known ? `<div class="facts">${hoursFact(v.hours)}</div>` : ""}
+      ${v.crowd?.demo ? `<p class="demo-note">Includes demo people</p>` : ""}
       <div class="row-actions">
-        <button class="btn btn-sm" type="button" data-act="open">${icon("info")}Details</button>
+        <button class="btn btn-sm" type="button" data-act="open">Details</button>
         <button class="btn btn-sm ${state.checkin?.venueId === v.id ? "" : "btn-mint"}" type="button" data-act="checkin">${state.checkin?.venueId === v.id ? "Checked in" : "Check in"}</button>
       </div>
     </div>
@@ -372,13 +409,13 @@ function compactVenue(v) {
 function eventRow(e) {
   const tz = state.data.city.tz;
   const d = dayIn(e.starts, tz);
-  return `<article class="card event-row" tabindex="0" data-key="event:${esc(e.id)}" aria-label="${esc(e.title)}">
+  return `<article class="card event-row k-${eventKindOf(e)}" tabindex="0" data-key="event:${esc(e.id)}" aria-label="${esc(e.title)}">
     <div class="datebox"><b>${esc(d.day)}</b><small>${esc(d.wd)}</small></div>
     <div class="body">
-      <div class="head" style="display:flex;justify-content:space-between;gap:8px"><h3>${esc(e.title)}</h3>${e.fit != null ? `<span class="tag tag-mint">${e.fit}%</span>` : ""}</div>
+      <div class="head" style="display:flex;justify-content:space-between;gap:8px"><h3>${esc(e.title)}</h3>${e.label ? `<span class="tag fitword">${esc(e.label)}</span>` : ""}</div>
       <p class="meta muted" style="font-size:12px">${esc(e.venue?.name || "")}${e.venue?.approximate ? " (location approximate)" : ""} · ${esc(timeIn(e.starts, tz))}</p>
       ${e.why ? `<p class="faint" style="font-size:12px;line-height:18px">${esc(e.why)}</p>` : ""}
-      ${e.crowd?.likeYou ? `<span class="tag tag-amber">${e.crowd.likeYou} like you at the venue${demoCount(e.crowd.demo)}</span>` : ""}
+      ${e.crowd?.likeYou ? `<span class="tag tag-coral" style="align-self:flex-start">${e.crowd.likeYou} of your people at the venue${demoCount(e.crowd.demo)}</span>` : ""}
     </div>
   </article>`;
 }
@@ -387,7 +424,7 @@ function featureEvent(e) {
   const tz = state.data.city.tz;
   const d = dayIn(e.starts, tz);
   const names = (e.artists || []).map((a) => a.name).slice(0, 4).join(", ");
-  return `<article class="card feature" tabindex="0" data-key="event:${esc(e.id)}" aria-label="${esc(e.title)}">
+  return `<article class="card feature k-${eventKindOf(e)}" tabindex="0" data-key="event:${esc(e.id)}" aria-label="${esc(e.title)}">
     <div class="media"><div class="media-blank">${icon(EVENT_ICON[e.eventKind] || "event")}</div>
       <span class="tl glass-tag amber">${icon("event")}${esc(d.wd)} ${esc(d.day)} ${esc(d.mon)} · ${esc(timeIn(e.starts, tz))}</span>
     </div>
@@ -423,14 +460,14 @@ function renderStream() {
 
   const restEvents = events.filter((e) => !(featured?.type === "event" && featured.e.id === e.id));
   if (restEvents.length) {
-    parts.push(`<p class="section-title">${icon("event")}Events ${state.when === "week" ? "this week" : state.when === "now" ? "on now" : "tonight"} <span class="n">${restEvents.length}</span></p>`);
+    parts.push(`<p class="section-title">${icon("event")}Events ${state.when === "week" ? "this week" : state.when === "now" ? "on now" : "tonight"}</p>`);
     parts.push(...restEvents.map(eventRow));
   } else if (!st.refreshing && !events.length && (venues.length) && [...(state.kinds.size ? state.kinds : ["music", "comedy"])].some((k) => k === "music" || k === "comedy")) {
     parts.push(`<p class="section-title">${icon("event")}Events</p><div class="banner info">${icon("info")}No events ${state.when === "week" ? "this week" : "tonight"} match your filters yet.${state.when !== "week" ? ` <button class="btn btn-sm btn-ghost" type="button" data-when-go="week">This week</button>` : ""}</div>`);
   }
   const restVenues = venues.filter((v) => !(featured?.type === "place" && featured.v.id === v.id));
   if (restVenues.length) {
-    parts.push(`<p class="section-title">${icon("storefront")}Places <span class="n">${restVenues.length}</span></p>`);
+    parts.push(`<p class="section-title">${icon("storefront")}More places for you</p>`);
     parts.push(...restVenues.map(compactVenue));
   }
   parts.push(`<p class="faint" style="font-size:11px;padding:0 4px">Places and matches from Qloo. Events found on the web each day and scored against your taste by Qloo. People counts come from check-ins on Outside.</p>`);
@@ -531,11 +568,6 @@ document.querySelectorAll("[data-kind]").forEach((b) => b.addEventListener("clic
   load();
 }));
 
-function tickClock() {
-  const tz = state.data?.city?.tz;
-  $("nowClock").textContent = tz ? `(${timeIn(new Date().toISOString(), tz)})` : "";
-}
-setInterval(tickClock, 30_000);
 
 /* ---------- checked-in chip ---------- */
 
@@ -585,7 +617,6 @@ addEventListener("hashchange", route);
 
 renderChip();
 await load();
-tickClock();
 route();
 // ?focus=place:<id> or event:<id> opens the map on that marker (shareable).
 {

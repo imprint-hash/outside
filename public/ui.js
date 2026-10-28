@@ -7,7 +7,8 @@ import { avatarSVG, PLUMBOB } from "/avatar.js";
 export const $ = (id) => document.getElementById(id);
 export const icon = (name, cls = "") => `<span class="ms ${cls}" aria-hidden="true">${name}</span>`;
 
-export const BRAND_MARK = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="#00ffa3" stroke-width="1.8"/><rect x="8.5" y="6" width="7" height="12" rx="1" fill="#00ffa3" opacity=".25"/><circle cx="14" cy="12.5" r="1.1" fill="#00ffa3"/></svg>`;
+// The door, drawn in Qloo's taste-strand colours.
+export const BRAND_MARK = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="omark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#148CC8"/><stop offset=".35" stop-color="#8C8CC8"/><stop offset=".65" stop-color="#C8648C"/><stop offset="1" stop-color="#F08C78"/></linearGradient></defs><rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="url(#omark)" stroke-width="1.8"/><rect x="8.5" y="6" width="7" height="12" rx="1" fill="url(#omark)" opacity=".25"/><circle cx="14" cy="12.5" r="1.1" fill="#DCB478"/></svg>`;
 
 /** The top bar. `active`: "tonight" | "venue". */
 export function topbar({ active = "tonight", user = null, cityLabel = "" } = {}) {
@@ -83,6 +84,7 @@ export function venueChoice() {
       <button class="btn btn-mint btn-block" type="button" id="seeDemoVenue">${icon("storefront")}See the demo venue (Jazz Cafe)</button>
       <a class="btn btn-ghost btn-block" href="/venue#join">${icon("add_business")}Sign up as a venue</a>
     </div>
+    <p style="margin-top:16px;text-align:center"><a class="plans-link" href="/plans">${icon("payments")}How Outside makes money</a></p>
     <p class="error" id="venueErr" role="alert" hidden></p>` });
   body.querySelector("#seeDemoVenue").onclick = openDemoVenue;
 }
@@ -165,12 +167,12 @@ export const compact = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 
  * from our reviews, or null. Pieces with no data are left out.
  */
 export function ratingPill({ all = null, ours = null, flat = false } = {}) {
+  // Plain: "4.5 ★" and "4.6 ★ from people like you". Counts and demo labels
+  // live in the opened card; each card shows "Includes demo ratings" once.
   const parts = [];
-  const oc = ours?.overall?.count || 0;
-  const od = demoCount(ours?.overall?.demo);
-  if (all != null) parts.push(`<span class="all">All <b>${all.toFixed(1)} ★</b>${oc ? `<i>(+${compact(oc)} on Outside${od})</i>` : ""}</span>`);
-  else if (ours?.overall?.avg != null) parts.push(`<span class="all">All <b>${ours.overall.avg.toFixed(1)} ★</b><i>(${compact(oc)}${od})</i></span>`);
-  if (ours?.likeYou?.enough && ours.likeYou.avg != null) parts.push(`<span class="yours">${icon("star", "fill")}Your taste ${ours.likeYou.avg.toFixed(1)} ★${ours.likeYou.demo ? `<i>(${ours.likeYou.demo} demo)</i>` : ""}</span>`);
+  if (all != null) parts.push(`<span class="all"><b>${all.toFixed(1)} ★</b></span>`);
+  else if (ours?.overall?.avg != null) parts.push(`<span class="all"><b>${ours.overall.avg.toFixed(1)} ★</b></span>`);
+  if (ours?.likeYou?.enough && ours.likeYou.avg != null) parts.push(`<span class="yours"><b>${ours.likeYou.avg.toFixed(1)} ★</b> from people like you</span>`);
   return parts.length ? `<div class="rating${flat ? " flat" : ""}">${parts.join("")}</div>` : "";
 }
 
@@ -209,6 +211,8 @@ export function facesRow(faces = [], total = 0, max = 3) {
 }
 
 export const demoTag = (x) => (x?.demo ? `<span class="tag tag-demo">Demo</span>` : "");
+/** True when the ratings behind a pill include labelled demo reviews. */
+export const ratingsHaveDemo = (ours) => Boolean(ours?.overall?.demo || ours?.likeYou?.demo);
 /** " · 2 demo" after a count that includes labelled demo people or reviews; "" when none. */
 export const demoCount = (n) => (n ? ` · ${n} demo` : "");
 export const isDemoName = (name) => /^Demo\s*·/.test(String(name || ""));

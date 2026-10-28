@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c0e16">
+<meta name="theme-color" content="#0f0d14">
 <title>Outside · Tonight</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,26 +18,26 @@
 
 <section class="ribbon" id="ribbon" aria-label="Filters">
   <div class="row" role="group" aria-label="When">
-    <button class="pill" type="button" data-when="now" aria-pressed="false"><span class="live" aria-hidden="true"></span><span>Now <span id="nowClock"></span></span></button>
+    <button class="pill" type="button" data-when="now" aria-pressed="false"><span class="live" aria-hidden="true"></span><span>Now</span></button>
     <button class="pill" type="button" data-when="tonight" aria-pressed="true">Tonight</button>
     <button class="pill" type="button" data-when="week" aria-pressed="false">This week</button>
     <span class="sep" aria-hidden="true"></span>
     <span class="here-chip" id="checkinChip" hidden></span>
   </div>
   <div class="row kinds" role="group" aria-label="What">
-    <button class="chip" type="button" data-kind="all" aria-pressed="true">All</button>
-    <button class="chip" type="button" data-kind="food" aria-pressed="false"><span class="ms" aria-hidden="true">restaurant</span>Food</button>
-    <button class="chip" type="button" data-kind="drinks" aria-pressed="false"><span class="ms" aria-hidden="true">local_bar</span>Drinks</button>
-    <button class="chip" type="button" data-kind="music" aria-pressed="false"><span class="ms" aria-hidden="true">graphic_eq</span>Music</button>
-    <button class="chip" type="button" data-kind="comedy" aria-pressed="false"><span class="ms" aria-hidden="true">theater_comedy</span>Comedy</button>
+    <button class="chip k-all" type="button" data-kind="all" aria-pressed="true">All</button>
+    <button class="chip k-food" type="button" data-kind="food" aria-pressed="false"><span class="ms" aria-hidden="true">restaurant</span>Food</button>
+    <button class="chip k-drinks" type="button" data-kind="drinks" aria-pressed="false"><span class="ms" aria-hidden="true">local_bar</span>Drinks</button>
+    <button class="chip k-music" type="button" data-kind="music" aria-pressed="false"><span class="ms" aria-hidden="true">graphic_eq</span>Music</button>
+    <button class="chip k-comedy" type="button" data-kind="comedy" aria-pressed="false"><span class="ms" aria-hidden="true">theater_comedy</span>Comedy</button>
   </div>
 </section>
 
 <main class="split" id="split">
   <section class="stream" id="stream" aria-label="Places and events for you" aria-busy="true">
     <div class="stream-head">
-      <h2><span class="ms" aria-hidden="true">radar</span>Your matches</h2>
-      <span class="sort">Most people like you first</span>
+      <h2>Picked for you</h2>
+      <span class="sort">Busiest with your people first</span>
     </div>
     <div id="streamBody">
       <div class="skeleton" style="height:420px"></div>
@@ -51,9 +51,13 @@
     </div>
     <div class="mapwrap">
       <div id="map" role="application" aria-label="Map of places and events"></div>
+      <div class="map-hello" id="mapHello" hidden>
+        <h2>Where <span class="strand-text">your people</span> are tonight.</h2>
+        <p>Glowing places have people with your taste in them right now.</p>
+      </div>
       <div class="legend" aria-hidden="true">
-        <span><i class="l-mint"></i>People like you here</span>
-        <span><i class="l-amber"></i>Fits your taste</span>
+        <span><i class="l-mint"></i>Your people are here</span>
+        <span><i class="l-amber"></i>Your kind of place</span>
         <span><i class="l-quiet"></i>Quiet</span>
       </div>
       <div class="map-tools">

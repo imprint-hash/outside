@@ -62,8 +62,8 @@ if (map) {
     map.addLayer({ id: "strands", type: "line", source: "strands", layout: { "line-cap": "round" }, paint: { "line-color": ["get", "color"], "line-width": on(2.6, 1.4), "line-opacity": on(0.95, 0.22) } });
     map.addLayer({ id: "orb-glow", type: "circle", source: "orbs", paint: { "circle-color": ["get", "color"], "circle-radius": on(34, 18), "circle-blur": 1, "circle-opacity": on(0.6, 0.18) } });
     map.addLayer({ id: "orbs", type: "circle", source: "orbs", paint: { "circle-color": ["get", "color"], "circle-radius": on(8, 5), "circle-opacity": on(1, 0.45), "circle-stroke-color": "#ffffff", "circle-stroke-width": on(1.5, 0) } });
-    map.addLayer({ id: "orb-labels", type: "symbol", source: "orbs", layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-offset": [0, 1.6], "text-anchor": "top", "text-letter-spacing": 0.08, "text-transform": "uppercase" }, paint: { "text-color": ["get", "color"], "text-halo-color": "#0c0e16", "text-halo-width": 1.4, "text-opacity": on(1, 0.55) } });
-    map.addLayer({ id: "me", type: "circle", source: "me", paint: { "circle-radius": 7, "circle-color": "#ffffff", "circle-stroke-color": "#00ffa3", "circle-stroke-width": 3 } });
+    map.addLayer({ id: "orb-labels", type: "symbol", source: "orbs", layout: { "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-offset": [0, 1.6], "text-anchor": "top", "text-letter-spacing": 0.02 }, paint: { "text-color": ["get", "color"], "text-halo-color": "#0c0e16", "text-halo-width": 1.4, "text-opacity": on(1, 0.55) } });
+    map.addLayer({ id: "me", type: "circle", source: "me", paint: { "circle-radius": 7, "circle-color": "#ffffff", "circle-stroke-color": "#4be3a5", "circle-stroke-width": 3 } });
   });
   map.jumpTo({ center: HOME, zoom: 11.4, pitch: 58, bearing: -20 });
   map.once("load", () => {

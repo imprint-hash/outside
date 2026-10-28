@@ -2,7 +2,7 @@
 // phones). Qloo's review data, our two ratings, who's here (faces, no
 // names), ride links, check in.
 import { api, esc } from "/api.js";
-import { icon, openSheet, onSheetClose, toast, ratingPill, hoursFact, tripText, timeIn, dayIn, stars, avatarSVG, whereAmI, demoTag, demoCount, compact } from "/ui.js";
+import { icon, openSheet, onSheetClose, toast, ratingPill, hoursFact, tripText, timeIn, dayIn, stars, avatarSVG, whereAmI, demoTag, demoCount, compact, ratingsHaveDemo } from "/ui.js";
 
 export const cardCache = new Map();
 
@@ -57,7 +57,7 @@ function facesHtml(crowd) {
     <p>${crowd.likeYou ? `<b class="mint">${crowd.likeYou} ${crowd.likeYou === 1 ? "person" : "people"} with your taste</b> of ${crowd.here} checked in` : `${crowd.here} checked in, none share your taste yet`}${crowd.demo ? ` <span class="tag tag-demo">${crowd.demo} demo</span>` : ""}</p>
     ${faces.length ? `<div class="face-grid">${faces.map((f) => `<div class="face-card">
         ${avatarSVG(f.avatar, { size: 56, plumbob: f.match >= 60 ? "strong" : f.match >= 40 ? "okay" : null })}
-        ${f.match != null ? `<span class="tag tag-mint">${f.match}% like you</span>` : ""}${demoTag(f)}
+        ${f.match != null ? `<span class="tag tag-coral">${f.match}% like you</span>` : ""}${demoTag(f)}
         ${f.bubbles?.length ? `<div class="bubbles" style="justify-content:center">${f.bubbles.map((b) => `<span class="bubble">${esc(b)}</span>`).join("")}</div>` : ""}
       </div>`).join("")}</div>` : ""}
     <p class="faint" style="font-size:12px">No names or locations. You see who they are once you're both checked in here.</p>`;
@@ -130,14 +130,14 @@ function placeHtml(ctx, c, { ride }) {
         ${p.address ? `<p class="muted" style="font-size:13px">${esc(p.address)}</p>` : ""}
       </div>
       ${facts ? `<div class="facts">${facts}</div>` : ""}
-      ${c.fit?.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${c.fit.match}% match</span><span class="what">Your taste · Qloo</span></div>${p.why ? `<p>${esc(p.why)}</p>` : ""}${proofChip(ctx.findVenue?.(p.id)?.proof)}</div></div>` : ""}
+      ${c.fit?.match != null ? `<div class="matchbox"><span class="ico">${icon("auto_graph")}</span><div><div><span class="big">${c.fit.match}% match</span><span class="what">with your taste, by Qloo</span></div>${p.why ? `<p>${esc(p.why)}</p>` : ""}${proofChip(ctx.findVenue?.(p.id)?.proof)}</div></div>` : ""}
 
       <div class="actions">
         <button class="btn btn-mint btn-stack" type="button" data-act="ride">${icon("local_taxi")}Ride there</button>
         ${here
           ? `<button class="btn btn-stack" type="button" data-act="leave">${icon("where_to_vote", "mint")}Checked in<small>Tap to leave</small></button>`
           : `<button class="btn btn-stack" type="button" data-act="checkin">${icon("location_on", "mint")}Check in</button>`}
-        <button class="btn btn-stack" type="button" data-act="hi" ${c.you?.canSayHi ? "" : "aria-disabled=\"true\""}>${icon("waving_hand", "amber")}Say hi${c.crowd?.likeYou ? ` (${c.crowd.likeYou})` : ""}</button>
+        <button class="btn btn-stack" type="button" data-act="hi" ${c.you?.canSayHi ? "" : "aria-disabled=\"true\""}>${icon("waving_hand", "coral")}Say hi${c.crowd?.likeYou ? ` (${c.crowd.likeYou})` : ""}</button>
       </div>
       ${!c.you?.canSayHi ? `<p class="faint" style="font-size:12px;margin-top:-8px">Check in here to see who's here and say hi.</p>` : ""}
       ${c.you?.canReview ? `<button class="btn btn-amber" type="button" data-act="rate">${icon("star")}How was it? Rate ${esc(p.name)}</button>` : c.you?.reviewedToday ? `<p class="ok-msg">${icon("check")} You rated it today. Thanks.</p>` : ""}
@@ -147,9 +147,10 @@ function placeHtml(ctx, c, { ride }) {
       <section class="panel" aria-label="Ratings">
         <h3>${icon("star")}Ratings</h3>
         <div class="bigrate">
-          <div><b>${q.rating != null ? `${q.rating.toFixed(1)} ★` : "–"}</b><small>Everyone${ours.overall?.count ? ` · plus ${ours.overall.count} on Outside (${ours.overall.avg.toFixed(1)} ★)${demoCount(ours.overall.demo)}` : ""}</small></div>
-          <div class="yt"><b>${ours.likeYou?.enough && ours.likeYou.avg != null ? `${ours.likeYou.avg.toFixed(1)} ★` : "–"}</b><small>${ours.likeYou?.enough ? `People with your taste · ${ours.likeYou.count}${demoCount(ours.likeYou.demo)}` : ours.likeYou?.count ? `Only ${ours.likeYou.count} rating from people like you so far${demoCount(ours.likeYou.demo)}` : "No ratings from people like you yet"}</small></div>
+          <div><b>${q.rating != null ? `${q.rating.toFixed(1)} ★` : "–"}</b><small>Everyone${ours.overall?.count ? `, plus ${ours.overall.count} on Outside (${ours.overall.avg.toFixed(1)} ★)` : ""}</small></div>
+          <div class="yt"><b>${ours.likeYou?.enough && ours.likeYou.avg != null ? `${ours.likeYou.avg.toFixed(1)} ★` : "–"}</b><small>${ours.likeYou?.enough ? `From ${ours.likeYou.count} people like you` : ours.likeYou?.count ? `Only ${ours.likeYou.count} rating from people like you so far` : "No ratings from people like you yet"}</small></div>
         </div>
+        ${ratingsHaveDemo(ours) ? `<p class="demo-note">Includes demo ratings</p>` : ""}
       </section>
 
       ${kws.length || summ.length ? `<section class="panel" aria-label="What reviewers say">
@@ -161,7 +162,7 @@ function placeHtml(ctx, c, { ride }) {
 
       ${ours.notes?.length ? `<section class="panel" aria-label="Notes from people on Outside">
         <h3>${icon("forum")}From people who went</h3>
-        ${ours.notes.map((n) => `<div class="note"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center">${stars(n.stars)}${n.match != null && n.match >= 40 ? `<span class="tag tag-mint">${n.match}% like you</span>` : ""}</div><p>“${esc(n.note)}”</p>${n.because || n.demo ? `<small>${esc(n.because || "")} ${demoTag(n)}</small>` : ""}</div>`).join("")}
+        ${ours.notes.map((n) => `<div class="note"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center">${stars(n.stars)}${n.match != null && n.match >= 40 ? `<span class="tag tag-coral">${n.match}% like you</span>` : ""}</div><p>“${esc(n.note)}”</p>${n.because || n.demo ? `<small>${esc(n.because || "")} ${demoTag(n)}</small>` : ""}</div>`).join("")}
       </section>` : ""}
 
       <section class="panel" aria-label="Who's here">

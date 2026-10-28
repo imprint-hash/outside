@@ -17,10 +17,10 @@ function webglOk() {
 }
 
 const C = {
-  bg: "#0c0e16", land: "#11131b", park: "#0e1914", wood: "#0d1712", water: "#0b1a24", waterway: "#0e2230",
-  landuse: "#141620", building: "#191b24", casing: "#0c0e16",
-  major: "#3a3c48", mid: "#30323d", minor: "#262833", path: "#1d1f28", rail: "#262833", boundary: "#3a4a3f",
-  label: "#b9cbbd", labelDim: "#8f9a93", labelWater: "#4f7f95", halo: "#0c0e16",
+  bg: "#0f0d14", land: "#15121a", park: "#10181a", wood: "#0f1618", water: "#0c1824", waterway: "#0f2130",
+  landuse: "#18151e", building: "#1d1a23", casing: "#0f0d14",
+  major: "#4a3f45", mid: "#3a333d", minor: "#2b2731", path: "#221f28", rail: "#2b2731", boundary: "#47404a",
+  label: "#d2c6be", labelDim: "#9e9590", labelWater: "#5d8aa3", halo: "#0f0d14",
 };
 
 function roadColor(id) {
@@ -49,7 +49,7 @@ function nightStyle(_prev, style) {
       else if (id === "park" || /grass|wetland/.test(id)) { p["fill-color"] = C.park; p["fill-opacity"] = 0.9; }
       else if (/wood/.test(id)) { p["fill-color"] = C.wood; p["fill-opacity"] = 0.9; }
       else if (id === "landuse_residential") { p["fill-color"] = C.land; p["fill-opacity"] = 1; }
-      else if (id === "building") { p["fill-color"] = C.building; p["fill-outline-color"] = "#22242e"; }
+      else if (id === "building") { p["fill-color"] = C.building; p["fill-outline-color"] = "#27222b"; }
       else { p["fill-color"] = C.landuse; p["fill-opacity"] = 0.8; }
     } else if (l.type === "line") {
       if (/^waterway/.test(id)) p["line-color"] = C.waterway;
@@ -66,7 +66,7 @@ function nightStyle(_prev, style) {
     } else if (l.type === "fill-extrusion") {
       // Taller buildings catch a little more light; all stay in the slate range.
       l.minzoom = 13;
-      p["fill-extrusion-color"] = ["interpolate", ["linear"], ["coalesce", ["get", "render_height"], 8], 0, "#15171f", 40, "#1a1c25", 120, "#22242d"];
+      p["fill-extrusion-color"] = ["interpolate", ["linear"], ["coalesce", ["get", "render_height"], 8], 0, "#18151d", 40, "#1e1a23", 120, "#27222b"];
       p["fill-extrusion-height"] = ["interpolate", ["linear"], ["zoom"], 13, 0, 14, ["coalesce", ["get", "render_height"], ["get", "height"], 8]];
       p["fill-extrusion-base"] = ["coalesce", ["get", "render_min_height"], 0];
       p["fill-extrusion-opacity"] = 0.9;
@@ -123,16 +123,16 @@ export function makeMap(el, center) {
     customAttribution: '© <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
   }), "bottom-right");
   map.on("style.load", () => {
-    map.setLight({ anchor: "viewport", color: "#c9d0f0", intensity: 0.12, position: [1.2, 200, 40] });
-    // Soft mint glow on the ground under places where people like you are.
+    map.setLight({ anchor: "viewport", color: "#f2d9c2", intensity: 0.14, position: [1.2, 200, 40] });
+    // Soft green glow on the ground under places where people like you are.
     map.addSource("glow", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     const firstLabel = map.getStyle().layers.find((l) => l.type === "symbol")?.id;
     map.addLayer({
       id: "glow", type: "circle", source: "glow",
       paint: {
-        "circle-color": "#00ffa3",
+        "circle-color": "#4be3a5",
         "circle-blur": 1,
-        "circle-opacity": 0.42,
+        "circle-opacity": 0.34,
         "circle-pitch-alignment": "map",
         "circle-radius": ["interpolate", ["exponential", 2], ["zoom"], 11, ["*", 8, ["sqrt", ["get", "like"]]], 16, ["*", 120, ["sqrt", ["get", "like"]]]],
       },

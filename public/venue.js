@@ -30,6 +30,7 @@ function joinForm({ signedIn }) {
           <li class="person">${icon("queue_music", "mint")}<span class="info"><b>Who to book next</b><span class="muted">Artists your crowd would love, from Qloo's taste graph.</span></span></li>
           <li class="person">${icon("lock", "faint")}<span class="info"><b>Private by design</b><span class="muted">Totals only. Any group under 3 people is folded into "other". No names, ever.</span></span></li>
         </ul>
+        <p style="margin-top:12px"><a class="plans-link" href="/plans">${icon("payments")}How Outside makes money</a></p>
         <button class="btn btn-ghost" type="button" id="seeDemo" style="margin-top:12px">${icon("storefront")}See the demo venue (Jazz Cafe)</button>
         <p class="error" id="venueErr" role="alert" hidden></p>
       </section>
@@ -100,7 +101,7 @@ function pickVenue() {
 const rowsHtml = (t, max = 6) => {
   if (!t?.rows?.length) return `<p class="faint">Not enough people yet.</p>`;
   const top = Math.max(...t.rows.map((r) => r.people));
-  return `<div class="list-plain" style="display:flex;flex-direction:column;gap:6px">${t.rows.slice(0, max).map((r) => `<div class="hbar"><span>${esc(r.name)}</span><span class="track"><i style="width:${(r.people / top) * 100}%"></i></span><span class="v">${r.people}</span></div>`).join("")}${t.other ? `<p class="faint" style="font-size:12px">Plus ${t.other} in smaller groups ("other")</p>` : ""}</div>`;
+  return `<div class="list-plain" style="display:flex;flex-direction:column;gap:6px">${t.rows.slice(0, max).map((r) => `<div class="hbar"><span>${esc(r.name)}</span><span class="track"><i style="width:${(r.people / top) * 100}%"></i></span><span class="v">${r.people}</span></div>`).join("")}${t.other ? `<p class="faint" style="font-size:12px">Plus ${t.other} in smaller groups</p>` : ""}</div>`;
 };
 
 const listHtml = (t) => (t?.rows?.length
@@ -113,7 +114,7 @@ function weekHtml(week) {
   return `<div class="weekbars" role="img" aria-label="Check-ins by night of the week: ${week.map((d) => `${d.day} ${d.checkins}`).join(", ")}">${week.map((d) => {
     const few = typeof d.checkins !== "number";
     const h = few ? 12 : (d.checkins / max) * 100;
-    return `<div class="col"><span class="n">${few ? "<3" : d.checkins}</span><span class="bar ${few ? "few" : ""}" style="height:${h}%"></span><span class="d">${esc(d.day)}</span></div>`;
+    return `<div class="col"><span class="n">${few ? "A few" : d.checkins}</span><span class="bar ${few ? "few" : ""}" style="height:${h}%"></span><span class="d">${esc(d.day)}</span></div>`;
   }).join("")}</div>`;
 }
 
@@ -140,12 +141,12 @@ async function load() {
         ${me?.readOnly ? "" : `<button class="btn btn-ghost btn-sm" type="button" id="changeVenue">${icon("swap_horiz")}Change venue</button>`}
       </div>
     </div>
-    ${v.demoUsers ? `<div class="banner">${icon("science")}${demoAll ? "All" : v.demoUsers} of these ${v.visitors} visitors are labelled demo users, seeded so the dashboard has something to show.</div>` : ""}
+    ${v.demoUsers ? `<div class="banner">${icon("info")}${demoAll ? `All ${v.visitors} visitors here are` : `${v.demoUsers} of these ${v.visitors} visitors are`} demo people we added so the dashboard has something to show.</div>` : ""}
     ${v.note ? `<div class="banner info">${icon("lock")}${esc(v.note)}</div>` : ""}
 
     <div class="dash-grid">
       <div class="metric span-4"><small>Visitors, last ${v.days || days} days</small><b>${v.visitors ?? 0}</b><span class="faint" style="font-size:12px">${v.demoUsers ? `${v.demoUsers} demo` : "Distinct people who checked in"}</span></div>
-      <div class="metric span-4"><small>Check-ins</small><b>${weekTotal || "–"}</b><span class="faint" style="font-size:12px">Nights with under 3 people aren't counted here</span></div>
+      <div class="metric span-4"><small>Check-ins</small><b>${weekTotal || "–"}</b><span class="faint" style="font-size:12px">Quiet nights (under 3 people) stay private</span></div>
       <div class="metric span-4"><small>Your rating on Outside</small><b class="amber">${v.ratings?.overall?.avg != null ? `${v.ratings.overall.avg.toFixed(1)} ★` : "–"}</b><span class="faint" style="font-size:12px">${v.ratings?.overall?.count ? `${v.ratings.overall.count} ratings${v.ratings.overall.demo ? ` · ${v.ratings.overall.demo} demo` : ""}` : "No ratings yet"}</span></div>
 
       ${v.byWeekday ? `<section class="panel span-7"><h3>${icon("calendar_view_week")}Who walks in, by night</h3>${weekHtml(v.byWeekday)}
@@ -158,7 +159,7 @@ async function load() {
       </section>` : ""}
 
       ${v.bookNext ? `<section class="panel span-12"><h3>${icon("queue_music")}Who to book next<span class="src">Qloo, from your crowd's favourites and your venue</span></h3>
-        ${v.bookNext.length ? `<div class="artists">${v.bookNext.map((a) => `<div class="artist"><div class="img">${a.image ? `<img src="${esc(a.image)}" alt="" loading="lazy">` : ""}</div><div class="t"><b>${esc(a.name)}</b>${a.affinity != null ? `<small>${a.affinity}% affinity</small>` : ""}${a.because?.length ? `<span class="faint" style="font-size:11px">Your crowd loves ${a.because.map(esc).join(", ")}</span>` : ""}</div></div>`).join("")}</div>` : `<p class="faint">Not enough to go on yet.</p>`}
+        ${v.bookNext.length ? `<div class="artists">${v.bookNext.map((a) => `<div class="artist"><div class="img">${a.image ? `<img src="${esc(a.image)}" alt="" loading="lazy">` : ""}</div><div class="t"><b>${esc(a.name)}</b>${a.affinity != null ? `<small>${a.affinity}% fit with your crowd</small>` : ""}${a.because?.length ? `<span class="faint" style="font-size:11px">Your crowd loves ${a.because.map(esc).join(", ")}</span>` : ""}</div></div>`).join("")}</div>` : `<p class="faint">Not enough to go on yet.</p>`}
         <form id="gapForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
           <label class="field" style="flex:1;min-width:200px"><span>The crowd you want: name an artist</span><input id="want" value="${esc(want)}" placeholder="e.g. Ezra Collective" autocomplete="off"></label>
           <button class="btn" type="submit">Compare</button>
@@ -179,7 +180,7 @@ async function load() {
           const strong = (c.events || []).find((x) => x.id === e.id)?.strongMatches;
           return `<li class="note"><b>${esc(e.title)}</b><small>${esc(new Date(e.starts).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }))} · ${esc(e.venue?.name || "")}</small>${e.lineup?.length ? `<small class="muted">${e.lineup.map(esc).join(", ")}</small>` : ""}${strong != null ? `<small>${esc(String(strong))} strong matches in town</small>` : ""}</li>`;
         }).join("")}</ul>` : `<p class="faint">No events yet. Add one so it reaches people whose taste fits the lineup.</p>`}
-        ${me?.readOnly ? `<div class="banner">${icon("visibility")}This is a view-only demo. Sign up as a venue to add your own events.</div>` : `<form id="evForm" class="form-grid">
+        ${me?.readOnly ? `<div class="banner">${icon("visibility")}<span>This is a view-only demo. Sign up as a venue to add your own events. Organisers can pin an event as a Spotlight for the right crowd. <a href="/plans">How Outside makes money</a></span></div>` : `<form id="evForm" class="form-grid">
           <label class="field wide"><span>Title</span><input id="evTitle" maxlength="120" required placeholder="Friday Jazz Social"></label>
           <label class="field wide"><span>Lineup (comma between names)</span><input id="evLineup" required placeholder="Ezra Collective, Nubya Garcia"></label>
           <label class="field"><span>Starts (your local time)</span><input id="evStart" type="datetime-local" required></label>
@@ -190,7 +191,8 @@ async function load() {
         </form>`}
       </section>
     </div>
-    <p class="faint" style="font-size:12px">${esc(v.privacy || c.privacy || "")}</p>`;
+    <p class="faint" style="font-size:12px">${esc(v.privacy || c.privacy || "")}</p>
+    <p><a class="plans-link" href="/plans">${icon("payments")}How Outside makes money: free for people, Event Spotlight for organisers</a></p>`;
   dash.setAttribute("aria-busy", "false");
 
   $("days").onchange = (e) => { days = Number(e.target.value); load(); };
