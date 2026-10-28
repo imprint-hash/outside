@@ -151,3 +151,5 @@ There is also a demo venue account for the venue dashboard (Jazz Cafe Camden): s
 ## Licence
 
 MIT. See `LICENSE`.
+
+Our code is MIT; files in `public/fx/` are ported from React Bits under their own licence (MIT + Commons Clause, see `THIRD_PARTY_NOTICES.md`).
