@@ -161,3 +161,19 @@ async function start() {
   setMode(mode);
 }
 start();
+
+/* ---------- looks only ---------- */
+
+// Qloo's strands over the map, soft and low-res (the map has the GPU too),
+// and sparks on "Make it mine". Loaded on the side: a failed effect never
+// stops the form.
+import("/fx/strands.js")
+  .then(({ mountStrands }) => mountStrands($("joinStrands"), { resolution: 0.75, maxDevicePixelRatio: 1, intensity: 0.9, glow: 0.45, spread: 0.85, energy: 0.45, speed: 0.6, scale: 1.1 }))
+  .catch(() => {});
+import("/fx/click-spark.js")
+  .then(({ installClickSpark }) => installClickSpark({
+    selector: "#go",
+    colors: ["#148CC8", "#00A08C", "#C8648C", "#DCB478", "#F08C78", "#8C8CC8", "#4BE3A5"],
+    sparkCount: 12, sparkRadius: 40, sparkSize: 13, duration: 560,
+  }))
+  .catch(() => {});

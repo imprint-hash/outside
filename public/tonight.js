@@ -39,6 +39,18 @@ if (!mapHello(firstVisitTips)) firstVisitTips();
 setRibbonHeight();
 addEventListener("resize", setRibbonHeight);
 
+// Sparks on the happy taps: Check in, Say hi, Got it. In the place's kind
+// colour where there is one (cards set --k), else Qloo's palette.
+const QLOO = ["#148CC8", "#00A08C", "#C8648C", "#DCB478", "#F08C78", "#8C8CC8"];
+import("/fx/click-spark.js").then(({ installClickSpark }) => installClickSpark({
+  selector: '[data-act="checkin"], #sheetBody [data-act="hi"], [data-hi], .tips button',
+  colors: (el) => {
+    const k = getComputedStyle(el).getPropertyValue("--k").trim();
+    return k ? [k, k, "#FFE9D2"] : QLOO;
+  },
+  sparkCount: 10, sparkRadius: 34, sparkSize: 12, duration: 520,
+})).catch(() => {});
+
 /** Three short tips, once per browser. */
 function firstVisitTips() {
   const KEY = "outside.tipsSeen";
@@ -68,19 +80,51 @@ function mapHello(then) {
   const box = $("mapHello");
   if (!box) return false;
   box.hidden = false;
+  const fx = helloEffects(box);
   let gone = false;
   const bye = () => {
     if (gone) return;
     gone = true;
     try { localStorage.setItem(KEY, "1"); } catch {}
     box.classList.add("out");
-    setTimeout(() => { box.remove(); then?.(); }, reduceMotion() ? 0 : 700);
+    setTimeout(() => { fx.stop(); box.remove(); then?.(); }, reduceMotion() ? 0 : 700);
   };
   const t = setTimeout(bye, 10_000);
   const touch = () => { clearTimeout(t); bye(); };
   const wrap = document.querySelector(".mapwrap");
   for (const ev of ["pointerdown", "wheel", "keydown"]) wrap?.addEventListener(ev, touch, { once: true, passive: true });
   return true;
+}
+
+/**
+ * Looks only, for the first-visit headline: Qloo-coloured strands in a small
+ * canvas inside the panel (never full-screen: the map has the GPU) and a slow
+ * shine on "your people". Both stop when the panel fades. Loaded on the side,
+ * so a failed effect never stops the page.
+ */
+function helloEffects(box) {
+  let strands = null;
+  let shine = null;
+  let stopped = false;
+  const holder = document.createElement("div");
+  holder.className = "hello-strands";
+  holder.setAttribute("aria-hidden", "true");
+  box.prepend(holder);
+  import("/fx/strands.js").then(({ mountStrands }) => {
+    if (!stopped) strands = mountStrands(holder, { opacity: 0.9, intensity: 0.85, energy: 0.5, speed: 0.7, maxDevicePixelRatio: 1.25 });
+  }).catch(() => {});
+  const words = box.querySelector(".strand-text");
+  import("/fx/shiny-text.js").then(({ shinyText }) => {
+    if (!stopped && words) shine = shinyText(words, { shineColor: "rgba(255, 250, 240, 0.95)", speed: 2.6, delay: 2.4, shineWidth: 36 });
+  }).catch(() => {});
+  return {
+    stop() {
+      stopped = true;
+      strands?.destroy();
+      shine?.();
+      holder.remove();
+    },
+  };
 }
 
 function cityLabel(u) {

@@ -26,6 +26,7 @@
 </header>
 
 <main class="plans">
+  <div class="plans-strands" id="plansStrands" aria-hidden="true"></div>
   <div class="plans-head">
     <p class="label" style="color:var(--drinks)">Plans</p>
     <h1>How Outside makes money</h1>
@@ -84,7 +85,7 @@
       <span class="example-label">Example</span>
       <article class="card feature k-event" aria-label="Example Spotlight event card">
         <div class="media"><div class="media-blank spot-media"><span class="ms" aria-hidden="true">music_note</span></div>
-          <span class="tl glass-tag spot"><span class="ms" aria-hidden="true">push_pin</span>Spotlight</span>
+          <span class="tl glass-tag spot"><span class="ms" aria-hidden="true">push_pin</span><span id="spotWord">Spotlight</span></span>
           <span class="tr glass-tag"><span class="ms" aria-hidden="true">event</span>Fri 14 Nov · 9 pm</span>
         </div>
         <div class="body">
@@ -98,5 +99,6 @@
 
   <p class="faint" style="font-size:13px"><a class="plans-link" href="/tonight"><span class="ms" aria-hidden="true">arrow_back</span>Back to tonight</a></p>
 </main>
+<script type="module" src="/plans.js"></script>
 </body>
 </html>

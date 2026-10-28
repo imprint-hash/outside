@@ -811,3 +811,21 @@ dialog.sheet.center[open] { animation: rise 0.25s cubic-bezier(.2, .8, .2, 1); }
 .me-btn svg { border-radius: 50%; background: var(--bg); }
 .faces > * { box-shadow: 0 0 0 2px var(--low), 0 0 0 3.5px rgba(240, 140, 120, 0.55); }
 .brand-mark { box-shadow: inset 0 0 0 1px var(--line-strong), 0 0 14px rgba(200, 100, 140, 0.18); }
+
+/* ---------- effects ported from React Bits (public/fx/) ----------
+   All decorative: aria-hidden, no pointer events, and the page reads the
+   same without them (no WebGL, reduced motion, or a failed load). */
+.start-page { position: relative; overflow: hidden; }
+.start-aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.start { position: relative; z-index: 1; }
+
+.map-hello { overflow: hidden; }
+.map-hello > :not(.hello-strands) { position: relative; z-index: 1; }
+.hello-strands { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.5; mix-blend-mode: screen; }
+
+.join-strands { position: fixed; inset: 0; pointer-events: none; opacity: 0.34; mix-blend-mode: screen; }
+
+.plans { position: relative; }
+.plans > * { position: relative; z-index: 1; }
+.plans > .plans-strands { position: absolute; z-index: 0; top: 4px; right: -24px; width: min(560px, 50%); height: 240px; pointer-events: none; opacity: 0.75; -webkit-mask-image: radial-gradient(70% 70% at 55% 50%, #000 40%, transparent 100%); mask-image: radial-gradient(70% 70% at 55% 50%, #000 40%, transparent 100%); }
+@media (max-width: 899px) { .plans > .plans-strands { width: 100%; opacity: 0.35; } }
