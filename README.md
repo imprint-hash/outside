@@ -4,6 +4,15 @@ Your kind of places, events and people, wherever you land. Built on Qloo's taste
 
 Live: https://outside-tonight.vercel.app
 
+## For judges
+
+Open the link — no sign-up. You're a guest in London. Venue view: For venues → See the demo venue.
+
+- The guest starts with a taste (Burna Boy, Tems, Ezra Collective, Dishoom), staying at The Hoxton, Shoreditch. Glowing places on the map are where people with that taste are tonight.
+- "Make it yours" (top bar) keeps that guest's taste and city and adds a name and password.
+- People and reviews marked **Demo** are seeded so the map isn't empty; guests count as demo too. Guests can say hi to demo people only, and are deleted after 48 hours.
+- The demo venue (Jazz Cafe) is view-only.
+
 ## What it does
 
 You tell Outside a few things you love (artists, places, films, shows, brands). In any of 36 cities it then shows you, on one map, tonight:
