@@ -47,7 +47,8 @@ const strandData = () => ({ type: "FeatureCollection", features: ORBS.map((o, i)
 const orbData = () => ({ type: "FeatureCollection", features: ORBS.map((o, i) => ({ type: "Feature", properties: { color: o.color, label: o.label, lit: i < lit }, geometry: { type: "Point", coordinates: o.at } })) });
 
 function drawStrands() {
-  if (!map?.getSource("strands")) return;
+  // The map may still be loading its style, when it has no sources yet.
+  try { if (!map?.getSource("strands")) return; } catch { return; }
   map.getSource("strands").setData(strandData());
   map.getSource("orbs").setData(orbData());
 }
