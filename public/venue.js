@@ -194,11 +194,31 @@ async function load() {
     <p class="faint" style="font-size:12px">${esc(v.privacy || c.privacy || "")}</p>
     <p><a class="plans-link" href="/plans">${icon("payments")}How Outside makes money: free for people, Event Spotlight for organisers</a></p>`;
   dash.setAttribute("aria-busy", "false");
+  countMetrics();
 
   $("days").onchange = (e) => { days = Number(e.target.value); load(); };
   if ($("changeVenue")) $("changeVenue").onclick = pickVenue;
   $("gapForm") && ($("gapForm").onsubmit = (e) => { e.preventDefault(); want = $("want").value.trim(); load(); });
   if ($("evForm")) $("evForm").onsubmit = (e) => addEvent(e, v);
+}
+
+// The three big numbers count up once, the first time the dashboard shows.
+// Looks only: loaded on the side, and the real numbers are already in place.
+let counted = false;
+function countMetrics() {
+  if (counted) return;
+  counted = true;
+  const nums = [...dash.querySelectorAll(".metric b")]
+    .map((el) => ({ el, m: /^(\d+(?:\.\d+)?)(.*)$/.exec(el.textContent.trim()) }))
+    .filter((x) => x.m);
+  if (!nums.length) return;
+  import("/fx/count-up.js").then(({ countUp }) => {
+    for (const { el, m } of nums) {
+      if (!el.isConnected) continue;
+      const decimals = (m[1].split(".")[1] || "").length;
+      countUp(el, { to: Number(m[1]), decimals, suffix: m[2], duration: 1.6 });
+    }
+  }).catch(() => {});
 }
 
 async function venueLocation(v) {
