@@ -2,7 +2,7 @@
 // most people like you first); right, the map with glowing markers. Tap one
 // for a popover, open it for the full card. Everything shown comes from the
 // API; missing fields are left out.
-import { api, esc, needSignIn } from "/api.js";
+import { api, esc, needSignIn, leaveDemoVenue } from "/api.js";
 import { $, icon, topbar, setHelloCount, ratingPill, facesRow, tripText, hoursFact, timeIn, dayIn, toast, sheetOpen, closeSheet, PLUMBOB, demoTag, demoCount } from "/ui.js";
 import { openPlace, openEvent, getCard, checkIn, cardCache } from "/card.js";
 import { openHere, openInbox, openChat, openSettings, openRate, pollInbox } from "/social.js";
@@ -26,14 +26,36 @@ const mobile = () => matchMedia("(max-width: 899px)").matches;
 
 const { user, checkin } = await api("/api/me").catch((e) => { toast(e.message, { error: true }); return {}; });
 if (!user) throw new Error("not signed in");
+// The view-only demo venue has no taste: Tonight belongs to the guest it came from.
+if (user.readOnly) { leaveDemoVenue(); throw new Error("leaving the demo venue"); }
 if (!user.avatar) location.replace("/taste");
 else if (!user.favourites?.length) location.replace("/taste#taste");
 else if (!user.city) location.replace("/taste#city");
 state.me = user;
 state.checkin = checkin;
 topbar({ active: "tonight", user, cityLabel: cityLabel(user) });
+firstVisitTips();
 setRibbonHeight();
 addEventListener("resize", setRibbonHeight);
+
+/** Three short tips, once per browser. */
+function firstVisitTips() {
+  const KEY = "outside.tipsSeen";
+  try { if (localStorage.getItem(KEY)) return; } catch { return; }
+  const box = document.createElement("aside");
+  box.className = "tips";
+  box.setAttribute("aria-label", "Tips");
+  box.innerHTML = `
+    <h3>${icon("tips_and_updates")}How Outside works</h3>
+    <ol>
+      <li>${icon("blur_on")}<span>Glowing places = people with your taste are there.</span></li>
+      <li>${icon("star_half")}<span>Tap a place for two ratings: everyone vs people like you.</span></li>
+      <li>${icon("waving_hand")}<span>Check in to see who's here and say hi.</span></li>
+    </ol>
+    <button class="btn btn-mint btn-sm" type="button">Got it</button>`;
+  box.querySelector("button").onclick = () => { try { localStorage.setItem(KEY, "1"); } catch {} box.remove(); };
+  document.body.append(box);
+}
 
 function cityLabel(u) {
   return { city: u.city || "Your city", stay: u.stay?.label || "" };
