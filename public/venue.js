@@ -2,7 +2,7 @@
 // love, how each taste group rates you, and who to book next (Qloo). Totals
 // only; groups under 3 people come back folded from the server.
 import { api, esc, token } from "/api.js";
-import { $, icon, topbar, toast, BRAND_MARK } from "/ui.js";
+import { $, icon, topbar, toast, BRAND_MARK, openDemoVenue } from "/ui.js";
 
 const dash = $("dash");
 let me = null;
@@ -16,6 +16,9 @@ function bareTop() {
 /* ---------- not a venue yet ---------- */
 
 function joinForm({ signedIn }) {
+  // A guest has no email or password yet: they fill in the full form, and keep their account.
+  const guest = Boolean(me?.guest);
+  if (guest) signedIn = false;
   dash.innerHTML = `
     <div class="dash-head"><div><p class="label mint">For venues and promoters</p><h1>Know your crowd</h1></div></div>
     <div class="dash-grid">
@@ -27,6 +30,8 @@ function joinForm({ signedIn }) {
           <li class="person">${icon("queue_music", "mint")}<span class="info"><b>Who to book next</b><span class="muted">Artists your crowd would love, from Qloo's taste graph.</span></span></li>
           <li class="person">${icon("lock", "faint")}<span class="info"><b>Private by design</b><span class="muted">Totals only. Any group under 3 people is folded into "other". No names, ever.</span></span></li>
         </ul>
+        <button class="btn btn-ghost" type="button" id="seeDemo" style="margin-top:12px">${icon("storefront")}See the demo venue (Jazz Cafe)</button>
+        <p class="error" id="venueErr" role="alert" hidden></p>
       </section>
       <form class="panel span-5" id="join" novalidate>
         <h3>${icon("storefront")}${signedIn ? "Use this account for a venue" : "Sign up as a venue"}</h3>
@@ -38,11 +43,13 @@ function joinForm({ signedIn }) {
         <button class="btn btn-mint" type="submit">${signedIn ? "Add venue tools" : "Create venue account"}</button>
       </form>
     </div>`;
+  $("seeDemo").onclick = openDemoVenue;
   $("join").onsubmit = async (e) => {
     e.preventDefault();
     const body = { email: $("jEmail").value.trim(), password: $("jPass").value, organiser: true, ...(signedIn ? {} : { firstName: $("jName").value.trim() }) };
     try {
-      const r = await fetch("/api/auth/signup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const auth = guest && token() ? { authorization: `Bearer ${token()}` } : {};
+      const r = await fetch("/api/auth/signup", { method: "POST", headers: { "content-type": "application/json", ...auth }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || "Something went wrong.");
       try { localStorage.setItem("outside.token", d.token); } catch {}
@@ -117,7 +124,7 @@ async function load() {
   let d;
   try { d = await api(`/api/organiser/dashboard?${q}`); }
   catch (err) { dash.innerHTML = `<div class="empty">${icon("error")}<h3>Couldn't load your dashboard</h3><p>${esc(err.message)}</p></div>`; return; }
-  if (!d.venue) return pickVenue();
+  if (!d.venue) return me?.readOnly ? (dash.innerHTML = `<div class="empty">${icon("storefront")}<h3>The demo venue isn't set up right now</h3></div>`) : pickVenue();
   const v = d.venue;
   const c = d.city || {};
   const demoAll = v.demoUsers && v.demoUsers === v.visitors;
@@ -130,7 +137,7 @@ async function load() {
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <label class="field" style="flex-direction:row;align-items:center;gap:8px"><span>Last</span>
           <select id="days" class="input" style="width:auto;padding:8px 10px">${[7, 28, 90].map((n) => `<option value="${n}" ${n === days ? "selected" : ""}>${n} days</option>`).join("")}</select></label>
-        <button class="btn btn-ghost btn-sm" type="button" id="changeVenue">${icon("swap_horiz")}Change venue</button>
+        ${me?.readOnly ? "" : `<button class="btn btn-ghost btn-sm" type="button" id="changeVenue">${icon("swap_horiz")}Change venue</button>`}
       </div>
     </div>
     ${v.demoUsers ? `<div class="banner">${icon("science")}${demoAll ? "All" : v.demoUsers} of these ${v.visitors} visitors are labelled demo users, seeded so the dashboard has something to show.</div>` : ""}
@@ -172,7 +179,7 @@ async function load() {
           const strong = (c.events || []).find((x) => x.id === e.id)?.strongMatches;
           return `<li class="note"><b>${esc(e.title)}</b><small>${esc(new Date(e.starts).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }))} · ${esc(e.venue?.name || "")}</small>${e.lineup?.length ? `<small class="muted">${e.lineup.map(esc).join(", ")}</small>` : ""}${strong != null ? `<small>${esc(String(strong))} strong matches in town</small>` : ""}</li>`;
         }).join("")}</ul>` : `<p class="faint">No events yet. Add one so it reaches people whose taste fits the lineup.</p>`}
-        <form id="evForm" class="form-grid">
+        ${me?.readOnly ? `<div class="banner">${icon("visibility")}This is a view-only demo. Sign up as a venue to add your own events.</div>` : `<form id="evForm" class="form-grid">
           <label class="field wide"><span>Title</span><input id="evTitle" maxlength="120" required placeholder="Friday Jazz Social"></label>
           <label class="field wide"><span>Lineup (comma between names)</span><input id="evLineup" required placeholder="Ezra Collective, Nubya Garcia"></label>
           <label class="field"><span>Starts (your local time)</span><input id="evStart" type="datetime-local" required></label>
@@ -180,16 +187,16 @@ async function load() {
           <label class="field"><span>Kind</span><select id="evKind"><option value="concert">Concert</option><option value="party">Club night</option><option value="comedy">Comedy</option><option value="festival">Festival</option><option value="other">Other</option></select></label>
           <div class="field" style="justify-content:flex-end"><button class="btn btn-mint" type="submit">${icon("add")}Add event</button></div>
           <p class="error wide" id="evErr" role="alert" hidden></p>
-        </form>
+        </form>`}
       </section>
     </div>
     <p class="faint" style="font-size:12px">${esc(v.privacy || c.privacy || "")}</p>`;
   dash.setAttribute("aria-busy", "false");
 
   $("days").onchange = (e) => { days = Number(e.target.value); load(); };
-  $("changeVenue").onclick = pickVenue;
+  if ($("changeVenue")) $("changeVenue").onclick = pickVenue;
   $("gapForm") && ($("gapForm").onsubmit = (e) => { e.preventDefault(); want = $("want").value.trim(); load(); });
-  $("evForm").onsubmit = (e) => addEvent(e, v);
+  if ($("evForm")) $("evForm").onsubmit = (e) => addEvent(e, v);
 }
 
 async function venueLocation(v) {

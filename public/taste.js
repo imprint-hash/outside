@@ -2,6 +2,7 @@
 // city and where you're staying (or use your location).
 import { api, needSignIn, esc } from "/api.js";
 import { avatarSVG } from "/avatar.js";
+import { guestBanner } from "/ui.js";
 
 needSignIn();
 const $ = (id) => document.getElementById(id);
@@ -218,6 +219,7 @@ const [{ options, default: dflt }, { user }, { cities }] = await Promise.all([ap
 OPTIONS = options;
 CITIES = cities;
 me = user;
+guestBanner(user);
 avatar = structuredClone(user.avatar || dflt);
 for (const f of user.favourites || []) chosen.push({ type: f.type, name: f.name });
 drawChosen();

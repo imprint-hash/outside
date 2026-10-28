@@ -1,7 +1,7 @@
 // Shared pieces for every signed-in screen: the top bar, sheets (dialogs),
 // toasts, ratings, faces and small formatters. Only fields the API returns
 // are shown; anything missing is left out rather than filled in.
-import { api, esc } from "/api.js";
+import { api, esc, enterDemoVenue, leaveDemoVenue } from "/api.js";
 import { avatarSVG, PLUMBOB } from "/avatar.js";
 
 export const $ = (id) => document.getElementById(id);
@@ -28,12 +28,76 @@ export function topbar({ active = "tonight", user = null, cityLabel = "" } = {})
       <a href="/tonight" ${active === "tonight" ? 'aria-current="page"' : ""}>Tonight</a>
       <a href="/tonight#here">People here</a>
       <a href="/tonight#inbox">Hellos<span class="count" id="navCount" hidden></span></a>
-      <a href="/venue" ${active === "venue" ? 'aria-current="page"' : ""}>For venues</a>
+      <a href="/venue" id="forVenues" ${active === "venue" ? 'aria-current="page"' : ""}>For venues</a>
     </nav>
     <div class="top-tools">
+      ${user?.guest ? `<a class="btn btn-mint btn-sm" href="/join">Make it yours</a>` : ""}
       <a class="icon-btn" href="/tonight#inbox" aria-label="Hellos">${icon("waving_hand")}<span class="dot-badge" id="bellCount" hidden></span></a>
       <a class="me-btn" href="/tonight#settings" aria-label="You and settings">${user ? avatarSVG(user.avatar, { size: 34 }) : icon("person")}</a>
     </div>`;
+  guestBanner(user);
+  // Not a venue yet: offer the view-only demo venue, or signing up as one.
+  const fv = el.querySelector("#forVenues");
+  if (user && user.role !== "organiser") fv.addEventListener("click", (e) => { e.preventDefault(); venueChoice(); });
+  // The view-only venue has no taste of its own: "Tonight" goes back to the guest.
+  if (user?.readOnly) el.querySelectorAll('a[href^="/tonight"]').forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); leaveDemoVenue(); }));
+}
+
+/**
+ * The slim bar on top of every app page while you're a guest (or looking at
+ * the view-only demo venue). Closing it hides it for this page only; it comes
+ * back on the next page load.
+ */
+let barClosed = false;
+export function guestBanner(user) {
+  document.querySelector(".guest-bar")?.remove();
+  document.documentElement.style.setProperty("--bar", "0px");
+  if ((!user?.guest && !user?.readOnly) || barClosed) return;
+  const bar = document.createElement("div");
+  bar.className = `guest-bar${user.readOnly ? " ro" : ""}`;
+  bar.setAttribute("role", "region");
+  bar.setAttribute("aria-label", user.readOnly ? "View-only demo" : "Guest");
+  bar.innerHTML = user.readOnly
+    ? `${icon("visibility")}<span><b>View-only demo venue.</b> Look around; nothing you do here changes it.</span>
+       <a class="btn btn-amber" href="/venue#join" id="roJoin">Sign up as a venue</a>
+       <a class="link" href="/tonight" id="roBack">Back to the guest view</a>`
+    : `<span>You're exploring as a <b>guest</b> in ${esc(user.city || "London")}</span>
+       <a class="btn btn-mint" href="/join">Make it yours</a>
+       <a class="link" href="/join#signin">Sign in</a>
+       <button class="icon-btn x" type="button" aria-label="Hide for now">${icon("close")}</button>`;
+  // The Tonight split fills the screen under the bar: tell it how tall the bar is.
+  const sync = () => document.documentElement.style.setProperty("--bar", bar.isConnected ? `${bar.offsetHeight}px` : "0px");
+  bar.querySelector(".x")?.addEventListener("click", () => { barClosed = true; bar.remove(); sync(); });
+  addEventListener("resize", sync);
+  bar.querySelector("#roBack")?.addEventListener("click", (e) => { e.preventDefault(); leaveDemoVenue(); });
+  bar.querySelector("#roJoin")?.addEventListener("click", (e) => { e.preventDefault(); leaveDemoVenue("/venue#join"); });
+  document.body.prepend(bar);
+  sync();
+}
+
+/** "For venues" for someone who isn't one: the demo venue, or sign up as a venue. */
+export function venueChoice() {
+  const body = openSheet({ title: "For venues", center: true, html: `
+    <p class="muted">See what a venue sees: who walks in on which night, what they love, how each taste group rates you, and who to book next.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+      <button class="btn btn-mint btn-block" type="button" id="seeDemoVenue">${icon("storefront")}See the demo venue (Jazz Cafe)</button>
+      <a class="btn btn-ghost btn-block" href="/venue#join">${icon("add_business")}Sign up as a venue</a>
+    </div>
+    <p class="error" id="venueErr" role="alert" hidden></p>` });
+  body.querySelector("#seeDemoVenue").onclick = openDemoVenue;
+}
+
+export async function openDemoVenue() {
+  const err = document.getElementById("venueErr");
+  try {
+    const res = await fetch("/api/demo/venue", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.token) throw new Error(data.error || "The demo venue isn't available right now.");
+    enterDemoVenue(data.token);
+    location.href = "/venue";
+  } catch (e) {
+    if (err) { err.textContent = e.message; err.hidden = false; } else toast(e.message, { error: true });
+  }
 }
 
 export function setHelloCount(n) {

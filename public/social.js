@@ -326,7 +326,7 @@ export function openSettings(ctx) {
   const body = openSheet({ title: "You", html: `<div class="pad">
     <div class="person">
       <span class="av">${avatarSVG(u.avatar, { size: 60, plumbob: "strong" })}</span>
-      <span class="info"><b>${esc(u.firstName)}</b><small class="faint">${esc(u.email)}${u.verified ? "" : " · not verified yet"}</small></span>
+      <span class="info"><b>${esc(u.firstName)}</b><small class="faint">${u.guest ? `Guest · <a href="/join">make it yours</a>` : `${esc(u.email)}${u.verified ? "" : " · not verified yet"}`}</small></span>
       <a class="btn btn-sm" href="/taste#you">Edit</a>
     </div>
     <section class="panel"><h3>${icon("location_city")}Where you are</h3>
